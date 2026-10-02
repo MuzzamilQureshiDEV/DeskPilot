@@ -10,9 +10,12 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:db": "vitest run tests/db"
+    "test:db": "vitest run tests/db",
+    "seed:admin": "node --env-file=.env.local scripts/seed-admin.mts",
+    "test:ai": "vitest run --config vitest.live.config.mts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0",
     "@base-ui/react": "^1.8.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.2",

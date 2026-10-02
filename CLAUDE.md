@@ -71,6 +71,9 @@ npm run lint
 npm run typecheck      # next typegen && tsc --noEmit
 npm run test           # Vitest (includes DB tests when .env.local exists)
 npm run test:db        # tenant-isolation tests against the linked cloud project
+npm run test:ai        # LIVE agent tests on the real Claude API (costs money; needs ANTHROPIC_API_KEY)
+npm run seed:admin     # dev test login (admin@deskpilot.test + demo shop); re-run resets password
+                       # custom: npm run seed:admin -- <email> "<password>" "<shop name>"
 npm run build
 ```
 
@@ -111,7 +114,9 @@ src/
     env-schema.ts env.ts (server-only) env-public.ts
     supabase/ server.ts client.ts admin.ts proxy.ts
     shopify/  config.ts client.ts queries.ts mutations.ts oauth.ts
-    ai/       models.ts agent.ts prompts.ts tools/ (one file per tool) schemas.ts
+    ai/       models.ts client.ts agent.ts outcome.ts prompts.ts schemas.ts
+              tools/ (one file per tool + types.ts, views.ts, index.ts)
+    store/    types.ts (StoreProvider interface + shared Order/Product types)
     sandbox/  data.ts provider.ts
     email/    inbound.ts outbound.ts filters.ts
     billing/  plans.ts usage.ts
@@ -468,8 +473,8 @@ Validated with Zod in `src/lib/env-schema.ts`. Server code reads `serverEnv()` f
 - [x] 1.2 Auth (signup/login/reset), create shop + membership on signup
 - [x] 1.3 Migration from section 6 with RLS on all tables + tenant isolation test (done before 1.2, which needs the tables)
 - [x] 1.4 Dashboard layout (sidebar + topbar) with empty pages
-- [ ] 1.5 Sandbox data + `SandboxProvider`
-- [ ] 1.6 AI agent (`agent.ts`, tools, prompts, `respond` schema)
+- [x] 1.5 Sandbox data + `SandboxProvider`
+- [x] 1.6 AI agent (`agent.ts`, tools, prompts, `respond` schema). Unit-tested with a fake client; live run pending `ANTHROPIC_API_KEY` (`npm run test:ai`)
 - [ ] 1.7 Test page working end-to-end on sandbox data
 
 ### Phase 2 — Day 2 (real store + inbox)
@@ -495,7 +500,8 @@ Validated with Zod in `src/lib/env-schema.ts`. Server code reads `serverEnv()` f
 ### Before launch
 - [ ] Turn Supabase "Confirm email" back ON and set up custom SMTP (Postmark). The built-in sender allows only about 2 emails/hour. The code already handles confirmation (`/auth/confirm`, "check your email" state).
 - [ ] Supabase Auth URL config: production Site URL + redirect URLs.
-- [ ] Rotate the Supabase secret key (it was shared in a chat during setup).
+- [ ] Rotate the Supabase secret key and any Anthropic API keys (they were shared in a chat during setup).
+- [ ] Add a working `ANTHROPIC_API_KEY` with API credit, then run `npm run test:ai` (the agent hasn't been run against the live model yet).
 
 ### Decisions log
 - 2026-10-02: Sonnet model ID corrected from `claude-sonnet-5-5` (doesn't exist) to `claude-sonnet-5`.
@@ -514,4 +520,12 @@ Validated with Zod in `src/lib/env-schema.ts`. Server code reads `serverEnv()` f
 - 2026-10-02 (1.2): In dev, Supabase "Confirm email" is OFF (user's choice), so signup logs in immediately.
 - 2026-10-02 (1.4): Dashboard uses shadcn `sidebar` (collapsible to icons, mobile drawer, state kept in the `sidebar_state` cookie). Nav config lives in `src/components/dashboard/nav.ts`, which is the single source for the sidebar and top bar title. New pages use `PageShell` + `PageHeader` + `EmptyState` from `src/components/dashboard/page-header.tsx`. `TooltipProvider` wraps the root layout.
 - 2026-10-02 (1.4): Rewrote shadcn's `use-mobile` hook with `useSyncExternalStore` (the generated one failed the `react-hooks/set-state-in-effect` lint rule). Re-check after any `shadcn add` that overwrites it.
+- 2026-10-02 (1.5): `StoreProvider` and its data types live in `src/lib/store/types.ts`. Money is a decimal string + currency, never a float. Providers compute `cancellable` (nothing shipped, not cancelled) and `fulfillment.delayed` (in transit past ETA), so the AI never does date math or status logic itself. `ShopifyProvider` (2.2) must return the same shapes.
+- 2026-10-02 (1.5): `findOrders` ANDs its filters and returns `[]` with no filters. An order number with a mismatched email returns nothing, so other customers' orders are never revealed.
+- 2026-10-02 (1.5): Sandbox data is built by `buildSandboxStore(now)` with dates relative to `now`, so scenarios stay valid over time. Tests pass a fixed date. Order #1001–#1015 each cover one scenario (`SANDBOX_SCENARIOS`). Policies are exported as `SANDBOX_KNOWLEDGE` (knowledge-row shape) for `get_policy` in sandbox mode. All emails use `example.com`, and tracking links use `track.example.com`.
+- 2026-10-02 (1.6): Agent = manual tool loop in `src/lib/ai/agent.ts` on `claude-sonnet-5` (adaptive thinking is on by default; no `thinking` param). It uses `tool_choice: auto` + `strict: true` tool schemas, and the prompt requires `respond` last. A plain-text turn gets one nudge per round to call `respond`. Forced `tool_choice` isn't used (unreliable with thinking). Top-level `cache_control: ephemeral` caches tools + system + history across rounds. Date, channel and sender go in the last user turn, so the system prompt stays cacheable.
+- 2026-10-02 (1.6): Safety is enforced in tool code, not only the prompt. `lookup_order` is pinned to the verified sender email (chat needs number + email). `get_tracking`/`propose_*` only accept order ids verified by `lookup_order` in the same run. `propose_*` check cancellable / refundable quantities / remaining amount and dedupe per order. Proposals are only collected, never executed. Tool errors (`ToolError`) go back to the model as `is_error`. Unexpected errors log only the tool name.
+- 2026-10-02 (1.6): Every non-normal finish (6 rounds without `respond`, `refusal`, `max_tokens`, context exceeded) returns a deterministic escalation with a holding reply, confidence 0 and `fallback` set. Tools from a refused or truncated turn are never run.
+- 2026-10-02 (1.6): `decideOutcome()` (`src/lib/ai/outcome.ts`) implements §7 step 5 as a pure function. Order of checks: escalate → `escalated`; proposals → `awaiting_approval` + create action requests; mode `off` → draft, conversation `human` (decision: AI drafts but doesn't own the category); autopilot + plan allows + non-money category + confidence ≥ threshold → `sent`; otherwise `ai_drafted`. Money categories or proposals are never auto-sent (tested across all categories).
+- 2026-10-02 (1.6): Live model tests (`tests/**/*.live.test.ts`) are excluded from `npm run test` and run only via `npm run test:ai` (`vitest.live.config.mts`).
 - 2026-10-02: Shopify Admin API pinned to `2026-07` in `src/lib/shopify/config.ts`. Verify it's a current stable version before task 2.2.
