@@ -27,6 +27,7 @@ export type CurrentShop = {
   id: string;
   name: string;
   agentName: string;
+  agentTone: string;
   plan: string;
   trialEndsAt: string | null;
   role: string;
@@ -41,7 +42,7 @@ export const getCurrentShop = cache(async (): Promise<CurrentShop | null> => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("shop_members")
-    .select("role, shops(id, name, agent_name, plan, trial_ends_at)")
+    .select("role, shops(id, name, agent_name, agent_tone, plan, trial_ends_at)")
     .eq("user_id", user.id)
     .limit(1)
     .maybeSingle();
@@ -53,6 +54,7 @@ export const getCurrentShop = cache(async (): Promise<CurrentShop | null> => {
     id: data.shops.id,
     name: data.shops.name,
     agentName: data.shops.agent_name,
+    agentTone: data.shops.agent_tone,
     plan: data.shops.plan,
     trialEndsAt: data.shops.trial_ends_at,
     role: data.role,
