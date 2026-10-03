@@ -34,6 +34,8 @@ import {
 type AppSidebarProps = {
   shopName: string | null;
   email: string;
+  /** False shows a dot on Store until Shopify is connected. */
+  storeConnected: boolean;
 };
 
 function initials(name: string): string {
@@ -45,7 +47,7 @@ function initials(name: string): string {
   return letters.join("") || "?";
 }
 
-export function AppSidebar({ shopName, email }: AppSidebarProps) {
+export function AppSidebar({ shopName, email, storeConnected }: AppSidebarProps) {
   const pathname = usePathname();
   const active = activeNavItem(pathname);
   const { isMobile, setOpenMobile } = useSidebar();
@@ -99,6 +101,9 @@ export function AppSidebar({ shopName, email }: AppSidebarProps) {
                       >
                         <item.icon aria-hidden />
                         <span>{item.title}</span>
+                        {item.href === "/store" && !storeConnected && (
+                          <span className="ml-auto size-2 shrink-0 rounded-full bg-primary" aria-label="Not connected yet" />
+                        )}
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   );

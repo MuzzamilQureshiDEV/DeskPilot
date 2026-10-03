@@ -1,7 +1,15 @@
+import { fileURLToPath } from "node:url";
+
 import { defineConfig, loadEnv } from "vite";
 
 export default defineConfig(({ mode }) => ({
-  resolve: { tsconfigPaths: true },
+  resolve: {
+    tsconfigPaths: true,
+    alias: {
+      // `server-only` throws outside an RSC build; stub it so tests can import server modules.
+      "server-only": fileURLToPath(new URL("./tests/stubs/server-only.ts", import.meta.url)),
+    },
+  },
   test: {
     environment: "node",
     include: ["src/**/*.test.ts", "tests/**/*.test.ts"],

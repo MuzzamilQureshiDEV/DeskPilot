@@ -427,8 +427,11 @@ export type Database = {
           setup: Json
           shopify_connected_at: string | null
           shopify_domain: string | null
+          shopify_refresh_expires_at: string | null
+          shopify_refresh_token_enc: string | null
           shopify_scopes: string | null
           shopify_token_enc: string | null
+          shopify_token_expires_at: string | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           support_from_email: string | null
@@ -445,8 +448,11 @@ export type Database = {
           setup?: Json
           shopify_connected_at?: string | null
           shopify_domain?: string | null
+          shopify_refresh_expires_at?: string | null
+          shopify_refresh_token_enc?: string | null
           shopify_scopes?: string | null
           shopify_token_enc?: string | null
+          shopify_token_expires_at?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           support_from_email?: string | null
@@ -463,8 +469,11 @@ export type Database = {
           setup?: Json
           shopify_connected_at?: string | null
           shopify_domain?: string | null
+          shopify_refresh_expires_at?: string | null
+          shopify_refresh_token_enc?: string | null
           shopify_scopes?: string | null
           shopify_token_enc?: string | null
+          shopify_token_expires_at?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           support_from_email?: string | null
@@ -518,7 +527,34 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_sandbox_run: {
+        Args: { p_free_text: boolean; p_shop_id: string }
+        Returns: {
+          event_id: number
+          remaining: number
+        }[]
+      }
+      disconnect_shopify: { Args: { p_shop_id: string }; Returns: undefined }
+      finish_sandbox_run: {
+        Args: {
+          p_event_id: number
+          p_input_tokens: number
+          p_model: string
+          p_output_tokens: number
+        }
+        Returns: undefined
+      }
       is_member: { Args: { s: string }; Returns: boolean }
+      release_sandbox_run: { Args: { p_event_id: number }; Returns: undefined }
+      shopify_connection_status: {
+        Args: { p_shop_id: string }
+        Returns: {
+          connected_at: string
+          domain: string
+          needs_reconnect: boolean
+          scopes: string
+        }[]
+      }
     }
     Enums: {
       action_status:

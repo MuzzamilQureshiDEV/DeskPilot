@@ -14,6 +14,8 @@ import {
 import { publicEnv } from "@/lib/env-public";
 import { createClient } from "@/lib/supabase/server";
 
+const WELCOME_PATH = "/store?welcome=1";
+
 function invalid(error: z.ZodError, values?: FormState["values"]): FormState {
   return { fieldErrors: z.flattenError(error).fieldErrors, values };
 }
@@ -36,6 +38,9 @@ export async function signUp(_prev: FormState, formData: FormData): Promise<Form
   const parsed = signupSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return invalid(parsed.error, values);
   const { shopName, email, password } = parsed.data;
+  // New accounts go to the guided "connect your store" step unless a flow (e.g. a
+  // Shopify install link) asked to continue somewhere else.
+  const afterSignup = safeNextPath(formData.get("next"), WELCOME_PATH);
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
@@ -44,7 +49,7 @@ export async function signUp(_prev: FormState, formData: FormData): Promise<Form
     options: {
       // Read by the on_auth_user_created trigger to create the shop.
       data: { shop_name: shopName },
-      emailRedirectTo: confirmUrl(HOME_PATH),
+      emailRedirectTo: confirmUrl(afterSignup),
     },
   });
 
@@ -59,7 +64,7 @@ export async function signUp(_prev: FormState, formData: FormData): Promise<Form
   }
 
   // Email confirmation off: signed in already. On: wait for the email link.
-  if (data.session) redirect(HOME_PATH);
+  if (data.session) redirect(afterSignup);
   return { message: "Check your email for a link to confirm your account." };
 }
 

@@ -9,7 +9,7 @@ import type { FormState } from "@/lib/auth/schemas";
 
 const initialState: FormState = {};
 
-export function SignupForm() {
+export function SignupForm({ next, defaultShopName }: { next?: string; defaultShopName?: string }) {
   const [state, formAction, pending] = useActionState(signUp, initialState);
 
   if (state.message) return <FormAlert message={state.message} />;
@@ -17,9 +17,10 @@ export function SignupForm() {
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <FormAlert error={state.error} />
+      {next && <input type="hidden" name="next" value={next} />}
       <FormField
         name="shopName"
-        defaultValue={state.values?.shopName}
+        defaultValue={state.values?.shopName ?? defaultShopName}
         label="Store name"
         autoComplete="organization"
         required

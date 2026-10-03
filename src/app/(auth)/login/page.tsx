@@ -22,7 +22,10 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         <LoginForm next={next || undefined} linkError={params.error === "link"} />
         <p className="text-center text-sm text-muted-foreground">
           New to DeskPilot?{" "}
-          <Link href="/signup" className="font-medium text-primary hover:underline">
+          <Link
+            href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"}
+            className="font-medium text-primary hover:underline"
+          >
             Start a free trial
           </Link>
         </p>

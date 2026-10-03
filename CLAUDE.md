@@ -45,7 +45,7 @@ AI models (verify current IDs in Anthropic docs before use, keep them in `src/li
 
 ## 3. Non-negotiable rules
 
-1. **Tenant isolation.** Every tenant table has `shop_id`. Every table has RLS enabled. Every query from user context goes through the RLS-aware Supabase client. The service-role client (`src/lib/supabase/admin.ts`) is used ONLY in background jobs and webhooks, and those code paths must always filter by `shop_id` explicitly.
+1. **Tenant isolation.** Every tenant table has `shop_id`. Every table has RLS enabled. Every query from user context goes through the RLS-aware Supabase client. The service-role client (`src/lib/supabase/admin.ts`) is used ONLY in background jobs and webhooks, and those code paths must always filter by `shop_id` explicitly. (One reviewed exception: the Shopify OAuth callback writes token columns with the service role after verifying Shopify's HMAC, the state cookie and the user's membership. The write is pinned to that shop id. Browsers have no grant on token columns.)
 2. **Money actions need human approval.** `refund`, `cancel`, `address_change` can only be created as `action_requests` with status `pending`. Only the approve endpoint (called by an authenticated shop member) may execute them. No setting, mode, or confidence score bypasses this. Enforce in code AND with a DB check (see schema).
 3. **AI answers only from data.** The agent may only state facts that came from tool results or the shop's knowledge entries. If data is missing, it escalates. Never invent order numbers, dates, tracking numbers, prices, or policies.
 4. **Secrets.** Shopify access tokens and any OAuth tokens are encrypted at rest (AES-256-GCM, key in `ENCRYPTION_KEY` env). Never log tokens, full emails bodies in production logs, or customer PII.
@@ -369,6 +369,12 @@ interface StoreProvider {
 
 - Public app created in the Shopify Partner dashboard, **non-embedded**, used for OAuth + API only.
 - Install flow: `/api/shopify/install?shop=xxx.myshopify.com` → Shopify OAuth → `/api/shopify/callback` verifies HMAC + state, exchanges code, encrypts and stores token, links shop.
+- **Merchant connect journey** (merchants never handle keys or tokens; one Partner app serves every merchant):
+  - *From DeskPilot:* signup → lands on `/store?welcome=1` → types the store address (live preview, `normalizeShopDomain` in `src/lib/shopify/domain.ts`) → approves in Shopify → back on `/store?connected=1`.
+  - *From Shopify:* install link or App Store → the Partner app's **App URL** `{APP_URL}/api/shopify/install` receives a Shopify-signed request (HMAC + timestamp within 10 min, `verifyFreshShopifyRequest`). Not signed in → `/signup?shop=…&next=/api/shopify/install?shop=…`, with the store name pre-filled. After signup, OAuth continues automatically.
+  - The sidebar "Store" item shows a dot until a store is connected.
+- **Owner's one-time setup:** a Partner app (non-embedded) with App URL `{APP_URL}/api/shopify/install`, redirect URL `{APP_URL}/api/shopify/callback`, and protected customer data enabled. Put the Client ID/secret in `SHOPIFY_API_KEY`/`SHOPIFY_API_SECRET`. Share with merchants via a custom distribution install link (no review), or list on the App Store (Shopify review).
+- **Expiring offline tokens** (required for public apps by 2027-01-01): code exchange sends `expiring=1`. The access token lasts about 1h and the refresh token 90 days, rotating on every refresh. Both are stored encrypted with their expiry times. Always get a token through `getShopifyAccessToken(shopId)` (`src/lib/shopify/tokens.ts`). It refreshes automatically and throws `ShopifyReauthRequired` when the merchant must reconnect.
 - Scopes (start): `read_orders, write_orders, read_products, read_customers, read_fulfillments, read_merchant_managed_fulfillment_orders`. Orders older than 60 days need `read_all_orders` (requires Shopify approval, add later).
 - Request Protected Customer Data access in the Partner dashboard.
 - Mutations (only from `execute-action` after approval): `refundCreate`, `orderCancel`, `orderUpdate` (shipping address).
@@ -475,10 +481,10 @@ Validated with Zod in `src/lib/env-schema.ts`. Server code reads `serverEnv()` f
 - [x] 1.4 Dashboard layout (sidebar + topbar) with empty pages
 - [x] 1.5 Sandbox data + `SandboxProvider`
 - [x] 1.6 AI agent (`agent.ts`, tools, prompts, `respond` schema). Unit-tested with a fake client; live run pending `ANTHROPIC_API_KEY` (`npm run test:ai`)
-- [ ] 1.7 Test page working end-to-end on sandbox data
+- [x] 1.7 Test page working end-to-end on sandbox data (UI and limits verified; live AI replies pending a funded `ANTHROPIC_API_KEY`)
 
 ### Phase 2 — Day 2 (real store + inbox)
-- [ ] 2.1 Shopify OAuth install/callback, encrypted token, Store page
+- [x] 2.1 Shopify OAuth install/callback, encrypted token, Store page (tested with mocks; real connect pending Shopify app keys + dev store)
 - [ ] 2.2 `ShopifyProvider` (orders, tracking, products)
 - [ ] 2.3 Train page (knowledge CRUD)
 - [ ] 2.4 Inngest setup + `process-message` function
@@ -528,4 +534,10 @@ Validated with Zod in `src/lib/env-schema.ts`. Server code reads `serverEnv()` f
 - 2026-10-02 (1.6): Every non-normal finish (6 rounds without `respond`, `refusal`, `max_tokens`, context exceeded) returns a deterministic escalation with a holding reply, confidence 0 and `fallback` set. Tools from a refused or truncated turn are never run.
 - 2026-10-02 (1.6): `decideOutcome()` (`src/lib/ai/outcome.ts`) implements §7 step 5 as a pure function. Order of checks: escalate → `escalated`; proposals → `awaiting_approval` + create action requests; mode `off` → draft, conversation `human` (decision: AI drafts but doesn't own the category); autopilot + plan allows + non-money category + confidence ≥ threshold → `sent`; otherwise `ai_drafted`. Money categories or proposals are never auto-sent (tested across all categories).
 - 2026-10-02 (1.6): Live model tests (`tests/**/*.live.test.ts`) are excluded from `npm run test` and run only via `npm run test:ai` (`vitest.live.config.mts`).
-- 2026-10-02: Shopify Admin API pinned to `2026-07` in `src/lib/shopify/config.ts`. Verify it's a current stable version before task 2.2.
+- 2026-10-02 (1.7): The Test page runs through the `runSandboxTest` Server Action (`src/app/(dashboard)/test/actions.ts`, input schema in `schema.ts`). Its persona is the shop's agent name and tone, working for the sample store, with `SANDBOX_KNOWLEDGE` and `SandboxProvider`. Approval cards there only change local state; nothing reaches Shopify.
+- 2026-10-02 (1.7): The free-text limit (3/shop/UTC day) is enforced in the DB by security-definer RPCs `claim_sandbox_run` (with a per-shop advisory lock), `finish_sandbox_run` (token counts) and `release_sandbox_run` (a failed AI call gives the run back). Rows go in `usage_events` with kinds `sandbox_freetext` / `sandbox_preset`, which are not plan usage (`ai_reply` is, task 3.4). This keeps the rule of no service role in user context.
+- 2026-10-02 (1.7): The Test page shows "In a live conversation: …" using `decideOutcome` with the shop's real automation setting for the reply's category. Autopilot counts as allowed only on the growth/scale plans (finalised in 3.4). Anthropic errors become friendly messages (key rejected / check workspace and credit / busy / unavailable). Only status and class are logged.
+- 2026-10-03 (2.1): Shopify Admin API pin bumped to `2026-10`, the latest stable version per shopify.dev on 2026-10-03.
+- 2026-10-03 (2.1): Secrets use AES-256-GCM in `src/lib/crypto.ts`, format `v1.<iv>.<tag>.<ct>` (base64url). The new columns `shopify_refresh_token_enc`, `shopify_token_expires_at` and `shopify_refresh_expires_at` have no browser grants. The Store page reads the connection through the `shopify_connection_status()` RPC (no secrets). Disconnect goes through the `disconnect_shopify()` RPC, which only clears fields.
+- 2026-10-03 (2.1): OAuth state is a random 32-byte value in an httpOnly, SameSite=Lax, 10-minute cookie scoped to the callback path, together with our shop id. The callback checks, in order: HMAC → canonical `*.myshopify.com` domain → state (constant time) → signed-in membership → code exchange → granted scopes (write_x covers read_x) → domain not linked to another shop. Then it stores tokens.
+- 2026-10-03 (2.1): Vitest aliases `server-only` to `tests/stubs/server-only.ts`, so server modules (crypto, tokens, route handlers) can be unit-tested.

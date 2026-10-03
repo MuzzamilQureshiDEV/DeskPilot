@@ -6,18 +6,24 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { getCurrentShop, requireUser } from "@/lib/auth/session";
+import { createClient } from "@/lib/supabase/server";
 
 const dateFormat = new Intl.DateTimeFormat("en", { month: "short", day: "numeric" });
 
 export default async function DashboardLayout({ children }: LayoutProps<"/">) {
   const user = await requireUser();
   const shop = await getCurrentShop();
+  const supabase = await createClient();
+  const { data: connection } = shop
+    ? await supabase.rpc("shopify_connection_status", { p_shop_id: shop.id }).maybeSingle()
+    : { data: null };
+  const storeConnected = !!connection?.domain && !connection.needs_reconnect;
   // Remember collapsed/expanded across reloads (cookie set by SidebarProvider).
   const sidebarOpen = (await cookies()).get("sidebar_state")?.value !== "false";
 
   return (
     <SidebarProvider defaultOpen={sidebarOpen}>
-      <AppSidebar shopName={shop?.name ?? null} email={user.email} />
+      <AppSidebar shopName={shop?.name ?? null} email={user.email} storeConnected={storeConnected} />
       <SidebarInset>
         <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
           <SidebarTrigger className="-ml-1" />
