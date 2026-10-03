@@ -10,16 +10,21 @@ import {
 import { publicEnvSchema } from "@/lib/env-schema";
 import type { Database } from "@/types/database";
 
+const supabaseEnvSchema = publicEnvSchema.pick({
+  NEXT_PUBLIC_SUPABASE_URL: true,
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: true,
+});
+
 /** Refreshes the Supabase auth session cookie on every matched request. */
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
-  const parsed = publicEnvSchema.safeParse(process.env);
+  const parsed = supabaseEnvSchema.safeParse(process.env);
   if (!parsed.success) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error("Supabase public env vars are missing or invalid");
-    }
-    // Local dev before .env.local exists: serve pages without auth.
+    // Don't take the whole site down: public pages still work, and pages that
+    // need Supabase fail on their own. Say exactly what's missing in the logs.
+    const missing = parsed.error.issues.map((i) => i.path.join(".")).join(", ");
+    console.error(`Supabase env vars missing or invalid: ${missing}. Set them in the hosting environment and redeploy.`);
     return response;
   }
   const env = parsed.data;

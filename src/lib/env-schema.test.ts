@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 
 import { describe, expect, it } from "vitest";
 
-import { publicEnvSchema, serverEnvSchema } from "@/lib/env-schema";
+import { appUrlFromEnv, publicEnvSchema, serverEnvSchema } from "@/lib/env-schema";
 
 const base = {
   NEXT_PUBLIC_APP_URL: "http://localhost:3000",
@@ -10,6 +10,18 @@ const base = {
   NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon",
   SUPABASE_SERVICE_ROLE_KEY: "service",
 };
+
+describe("appUrlFromEnv", () => {
+  it("prefers NEXT_PUBLIC_APP_URL, then Vercel's production domain", () => {
+    expect(appUrlFromEnv({ NEXT_PUBLIC_APP_URL: "https://app.example.com", VERCEL_PROJECT_PRODUCTION_URL: "x.vercel.app" })).toBe(
+      "https://app.example.com",
+    );
+    expect(appUrlFromEnv({ VERCEL_PROJECT_PRODUCTION_URL: "deskpilot-seven.vercel.app" })).toBe(
+      "https://deskpilot-seven.vercel.app",
+    );
+    expect(appUrlFromEnv({})).toBeUndefined();
+  });
+});
 
 describe("env schemas", () => {
   it("accepts the minimum required server env", () => {

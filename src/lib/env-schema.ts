@@ -31,5 +31,15 @@ export const serverEnvSchema = publicEnvSchema.extend({
   SENTRY_DSN: z.url().optional(),
 });
 
+/**
+ * The app's public URL: NEXT_PUBLIC_APP_URL if set, otherwise the production
+ * domain Vercel provides automatically (so a missing setting can't break pages).
+ */
+export function appUrlFromEnv(env: Record<string, string | undefined>): string | undefined {
+  if (env.NEXT_PUBLIC_APP_URL) return env.NEXT_PUBLIC_APP_URL;
+  const vercel = env.VERCEL_PROJECT_PRODUCTION_URL ?? env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL;
+  return vercel ? `https://${vercel}` : undefined;
+}
+
 export type PublicEnv = z.infer<typeof publicEnvSchema>;
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

@@ -1,4 +1,4 @@
-import { publicEnvSchema, type PublicEnv } from "@/lib/env-schema";
+import { appUrlFromEnv, publicEnvSchema, type PublicEnv } from "@/lib/env-schema";
 
 /**
  * Validated public env, safe for client code. Each key is referenced literally
@@ -6,7 +6,11 @@ import { publicEnvSchema, type PublicEnv } from "@/lib/env-schema";
  */
 export function publicEnv(): PublicEnv {
   return publicEnvSchema.parse({
-    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+    NEXT_PUBLIC_APP_URL: appUrlFromEnv({
+      NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+      NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL: process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL,
+      VERCEL_PROJECT_PRODUCTION_URL: process.env.VERCEL_PROJECT_PRODUCTION_URL,
+    }),
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   });
