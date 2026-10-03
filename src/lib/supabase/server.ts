@@ -11,8 +11,10 @@ import type { Database } from "@/types/database";
  * Acts as the signed-in user. Create a new one per request.
  */
 export async function createClient() {
-  const env = publicEnv();
+  // Read cookies first: it marks the page as per-request (dynamic), so Next.js
+  // never tries to prerender user pages at build time.
   const cookieStore = await cookies();
+  const env = publicEnv();
 
   return createServerClient<Database>(
     env.NEXT_PUBLIC_SUPABASE_URL,
