@@ -7,6 +7,7 @@ import { anthropicClient } from "@/lib/ai/client";
 import { decideOutcome, type AutomationSetting } from "@/lib/ai/outcome";
 import type { ProposedAction } from "@/lib/ai/tools/types";
 import { getCurrentShop } from "@/lib/auth/session";
+import { loadKnowledge } from "@/lib/knowledge/load";
 import { serverEnv } from "@/lib/env";
 import { SANDBOX_KNOWLEDGE, SANDBOX_STORE_NAME } from "@/lib/sandbox/data";
 import { SandboxProvider } from "@/lib/sandbox/provider";
@@ -113,12 +114,15 @@ export async function runSandboxTest(raw: unknown): Promise<SandboxRunResponse> 
       ? [{ role: "customer" as const, body: SCENARIOS[input.scenario].message }]
       : [...input.history, { role: "customer" as const, body: input.message }];
 
+  // Sample store facts, plus the merchant's own example replies so their style shows up here.
+  const knowledge = [...SANDBOX_KNOWLEDGE, ...(await loadKnowledge(supabase, shop.id, ["example_reply"]))];
+
   let result;
   try {
     result = await runAgent({
       client: anthropicClient(),
       shop: { agentName: shop.agentName, agentTone: shop.agentTone, shopName: SANDBOX_STORE_NAME },
-      knowledge: SANDBOX_KNOWLEDGE,
+      knowledge,
       provider: new SandboxProvider(),
       history,
       channel: "sandbox",
