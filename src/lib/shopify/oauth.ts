@@ -20,7 +20,13 @@ export type ShopifyAppConfig = {
 /** App credentials from env, or null when Shopify isn't configured yet. */
 export function shopifyAppConfig(): ShopifyAppConfig | null {
   const env = serverEnv();
-  if (!env.SHOPIFY_API_KEY || !env.SHOPIFY_API_SECRET || !env.ENCRYPTION_KEY) return null;
+  const missing = (["SHOPIFY_API_KEY", "SHOPIFY_API_SECRET", "ENCRYPTION_KEY"] as const).filter((k) => !env[k]);
+  if (missing.length > 0) {
+    // Names only, never values. Shows up in the hosting provider's runtime logs.
+    console.warn(`Shopify connect disabled: missing ${missing.join(", ")}`);
+    return null;
+  }
+  if (!env.SHOPIFY_API_KEY || !env.SHOPIFY_API_SECRET) return null;
   const scopes = env.SHOPIFY_SCOPES
     ? env.SHOPIFY_SCOPES.split(",").map((s) => s.trim()).filter(Boolean)
     : [...DEFAULT_SHOPIFY_SCOPES];
