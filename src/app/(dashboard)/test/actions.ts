@@ -7,6 +7,7 @@ import { anthropicClient } from "@/lib/ai/client";
 import { decideOutcome, type AutomationSetting } from "@/lib/ai/outcome";
 import type { ProposedAction } from "@/lib/ai/tools/types";
 import { getCurrentShop } from "@/lib/auth/session";
+import { PLANS, planOf } from "@/lib/billing/plans";
 import { loadKnowledge } from "@/lib/knowledge/load";
 import { serverEnv } from "@/lib/env";
 import { SANDBOX_KNOWLEDGE, SANDBOX_STORE_NAME } from "@/lib/sandbox/data";
@@ -22,7 +23,6 @@ import {
   type SandboxRunResponse,
 } from "./schema";
 
-const AUTOPILOT_PLANS = new Set(["growth", "scale"]);
 const DEFAULT_SETTING: AutomationSetting = { mode: "copilot", confidenceThreshold: 0.85 };
 
 function str(v: Json | undefined): string {
@@ -155,7 +155,7 @@ export async function runSandboxTest(raw: unknown): Promise<SandboxRunResponse> 
   const setting: AutomationSetting = settingRow
     ? { mode: settingRow.mode, confidenceThreshold: Number(settingRow.confidence_threshold) }
     : DEFAULT_SETTING;
-  const decided = decideOutcome(result, setting, { autopilotAllowedByPlan: AUTOPILOT_PLANS.has(shop.plan) });
+  const decided = decideOutcome(result, setting, { autopilotAllowedByPlan: PLANS[planOf(shop.plan)].autopilot });
   const outcome: LiveOutcome =
     decided.messageStatus === "sent"
       ? "sent"

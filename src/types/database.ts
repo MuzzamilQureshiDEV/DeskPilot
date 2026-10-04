@@ -545,6 +545,18 @@ export type Database = {
         Returns: undefined
       }
       is_member: { Args: { s: string }; Returns: boolean }
+      record_agent_result: {
+        Args: {
+          p_actions: Json
+          p_conversation: Json
+          p_conversation_id: string
+          p_reply: Json
+          p_shop_id: string
+          p_source_message_id: string
+          p_usage: Json
+        }
+        Returns: string
+      }
       release_sandbox_run: { Args: { p_event_id: number }; Returns: undefined }
       shopify_connection_status: {
         Args: { p_shop_id: string }

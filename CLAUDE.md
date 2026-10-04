@@ -73,6 +73,8 @@ npm run test           # Vitest (includes DB tests when .env.local exists)
 npm run test:db        # tenant-isolation tests against the linked cloud project
 npm run test:shopify   # LIVE ShopifyProvider tests against the connected dev store
 npm run test:ai        # LIVE agent tests on the real Claude API (costs money; needs ANTHROPIC_API_KEY)
+npm run dev:inngest    # Inngest dev server (needs INNGEST_DEV=1 in .env.local + npm run dev)
+npm run dev:message -- "text" [customer-email]   # simulate an inbound email for the demo shop
 npm run seed:admin     # dev test login (admin@deskpilot.test + demo shop); re-run resets password
                        # custom: npm run seed:admin -- <email> "<password>" "<shop name>"
 npm run build
@@ -488,7 +490,7 @@ Validated with Zod in `src/lib/env-schema.ts`. Server code reads `serverEnv()` f
 - [x] 2.1 Shopify OAuth install/callback, encrypted token, Store page (tested with mocks; real connect pending Shopify app keys + dev store)
 - [x] 2.2 `ShopifyProvider` (orders, tracking, products). Live-tested on the connected dev store (products); order mapping unit-tested (the store has no orders yet)
 - [x] 2.3 Train page (knowledge CRUD)
-- [ ] 2.4 Inngest setup + `process-message` function
+- [x] 2.4 Inngest setup + `process-message` function (verified end-to-end locally up to the Anthropic call; live replies need API credit)
 - [ ] 2.5 Inbox + conversation detail (send / edit / reject / take over)
 - [ ] 2.6 Home page (checklist + KPI cards)
 
@@ -538,6 +540,9 @@ Validated with Zod in `src/lib/env-schema.ts`. Server code reads `serverEnv()` f
 - 2026-10-02 (1.7): The Test page runs through the `runSandboxTest` Server Action (`src/app/(dashboard)/test/actions.ts`, input schema in `schema.ts`). Its persona is the shop's agent name and tone, working for the sample store, with `SANDBOX_KNOWLEDGE` and `SandboxProvider`. Approval cards there only change local state; nothing reaches Shopify.
 - 2026-10-02 (1.7): The free-text limit (3/shop/UTC day) is enforced in the DB by security-definer RPCs `claim_sandbox_run` (with a per-shop advisory lock), `finish_sandbox_run` (token counts) and `release_sandbox_run` (a failed AI call gives the run back). Rows go in `usage_events` with kinds `sandbox_freetext` / `sandbox_preset`, which are not plan usage (`ai_reply` is, task 3.4). This keeps the rule of no service role in user context.
 - 2026-10-02 (1.7): The Test page shows "In a live conversation: …" using `decideOutcome` with the shop's real automation setting for the reply's category. Autopilot counts as allowed only on the growth/scale plans (finalised in 3.4). Anthropic errors become friendly messages (key rejected / check workspace and credit / busy / unavailable). Only status and class are logged.
+- 2026-10-04 (2.4): Inngest **v4** (triggers go in the options, cloud mode by default, `INNGEST_DEV=1` locally). `process-message` runs three memoised steps: prepare → run-agent → save. It uses `concurrency` keyed on conversationId (limit 1) and `retries: 3`. Anthropic 400/401/403/404 errors throw `NonRetriableError` (no credit, bad key). After the final failure, `onFailure` calls `markFailed`, which adds a system note (`external_message_id fail:<id>`) and escalates the conversation, so customers are never silently dropped. The core logic lives in `src/lib/ai/process-message.ts` (testable without Inngest).
+- 2026-10-04 (2.4): `record_agent_result()` (service role only) saves the AI message, `pending` action requests (status forced), the conversation update and the `ai_reply` usage event in one transaction. It's idempotent via `external_message_id = 'ai:<customer message id>'`.
+- 2026-10-04 (2.4): `prepareRun` skips when the AI is paused, a person took over (`human`), the message was already answered, a newer customer message exists (it gets its own run), or plan limits apply (`src/lib/billing/plans.ts`: trial 25, starter 100, growth 250, scale unlimited per UTC month; an ended trial stops AI). History shows Ava only customer messages and replies that were **sent**. `CHANNEL_CAN_SEND = false` until 3.3, so nothing is auto-sent yet.
 - 2026-10-04 (2.3): Train page = tabs per `knowledge_kind` (`/train?kind=…`) with add, edit and delete via Server Actions (`src/app/(dashboard)/train/actions.ts`, Zod in `src/lib/knowledge/schema.ts`). Writes go through the RLS client, also filtered by `shop_id`. Limits per shop: policies 30, FAQs 100, brand 5, example replies 10; title ≤120 and content ≤4000 characters. Brand and example replies go into every prompt, so they're kept few. Starter templates with [brackets] help merchants begin.
 - 2026-10-04 (2.3): `loadKnowledge(client, shopId, kinds?)` (`src/lib/knowledge/load.ts`) returns entries newest first, so the prompt's "first 5 example replies" are the most recent. The Test page now adds the merchant's own example replies to the sample store's knowledge, so training visibly changes the style. Facts still come from the sample store.
 - 2026-10-04 (2.2): `ShopifyProvider` (`src/lib/shopify/provider.ts`) uses three queries in `queries.ts`, validated live against 2026-10 (cost 6–32 points each). The client (`client.ts`) retries THROTTLED using the cost/restore-rate info, and retries 429/5xx (honouring Retry-After). 401/403 throws an `auth` error. Every response is Zod-validated.
