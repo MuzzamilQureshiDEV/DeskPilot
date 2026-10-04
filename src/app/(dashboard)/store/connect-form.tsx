@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, CircleAlert } from "lucide-react";
+import { CheckCircle2, CircleAlert, Plug } from "lucide-react";
 import { useId, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -17,9 +17,10 @@ import { disconnectShopify } from "./actions";
 export function ConnectForm({ defaultDomain, label }: { defaultDomain?: string; label: string }) {
   const [value, setValue] = useState(defaultDomain ?? "");
   const [submitting, setSubmitting] = useState(false);
+  const [tried, setTried] = useState(false);
   const hintId = useId();
   const domain = normalizeShopDomain(value);
-  const showHint = value.trim().length > 0;
+  const showHint = tried || value.trim().length > 0;
 
   return (
     <form
@@ -28,6 +29,7 @@ export function ConnectForm({ defaultDomain, label }: { defaultDomain?: string; 
       onSubmit={(e) => {
         if (!domain) {
           e.preventDefault();
+          setTried(true);
           return;
         }
         setSubmitting(true);
@@ -46,11 +48,12 @@ export function ConnectForm({ defaultDomain, label }: { defaultDomain?: string; 
           required
           aria-invalid={showHint && !domain ? true : undefined}
           aria-describedby={hintId}
-          className="sm:flex-1"
+          className="h-10 text-base sm:flex-1 md:text-sm"
         />
         {/* Send the normalised address, not the raw input. */}
         <input type="hidden" name="shop" value={domain ?? ""} />
-        <Button type="submit" disabled={!domain || submitting}>
+        <Button type="submit" size="lg" className="h-10 px-5" disabled={submitting}>
+          <Plug aria-hidden />
           {submitting ? "Opening Shopify…" : label}
         </Button>
       </div>
@@ -64,7 +67,9 @@ export function ConnectForm({ defaultDomain, label }: { defaultDomain?: string; 
           ) : (
             <span className="flex items-center gap-1.5 text-destructive">
               <CircleAlert className="size-4" aria-hidden />
-              That doesn&apos;t look like a Shopify store address.
+              {value.trim()
+                ? "That doesn’t look like a Shopify store address."
+                : "Enter your store address first, e.g. your-store.myshopify.com."}
             </span>
           ))}
       </p>

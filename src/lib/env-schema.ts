@@ -22,6 +22,8 @@ export const serverEnvSchema = publicEnvSchema.extend({
   SHOPIFY_API_KEY: z.string().min(1).optional(),
   SHOPIFY_API_SECRET: z.string().min(1).optional(),
   SHOPIFY_SCOPES: z.string().min(1).optional(),
+  /** App Store listing / install link. When set, the Store page offers one-click connect. */
+  SHOPIFY_INSTALL_URL: z.url().optional(),
   INNGEST_EVENT_KEY: z.string().min(1).optional(),
   INNGEST_SIGNING_KEY: z.string().min(1).optional(),
   POSTMARK_SERVER_TOKEN: z.string().min(1).optional(),
