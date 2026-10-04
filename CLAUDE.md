@@ -71,6 +71,7 @@ npm run lint
 npm run typecheck      # next typegen && tsc --noEmit
 npm run test           # Vitest (includes DB tests when .env.local exists)
 npm run test:db        # tenant-isolation tests against the linked cloud project
+npm run test:shopify   # LIVE ShopifyProvider tests against the connected dev store
 npm run test:ai        # LIVE agent tests on the real Claude API (costs money; needs ANTHROPIC_API_KEY)
 npm run seed:admin     # dev test login (admin@deskpilot.test + demo shop); re-run resets password
                        # custom: npm run seed:admin -- <email> "<password>" "<shop name>"
@@ -485,7 +486,7 @@ Validated with Zod in `src/lib/env-schema.ts`. Server code reads `serverEnv()` f
 
 ### Phase 2 — Day 2 (real store + inbox)
 - [x] 2.1 Shopify OAuth install/callback, encrypted token, Store page (tested with mocks; real connect pending Shopify app keys + dev store)
-- [ ] 2.2 `ShopifyProvider` (orders, tracking, products)
+- [x] 2.2 `ShopifyProvider` (orders, tracking, products). Live-tested on the connected dev store (products); order mapping unit-tested (the store has no orders yet)
 - [ ] 2.3 Train page (knowledge CRUD)
 - [ ] 2.4 Inngest setup + `process-message` function
 - [ ] 2.5 Inbox + conversation detail (send / edit / reject / take over)
@@ -537,6 +538,10 @@ Validated with Zod in `src/lib/env-schema.ts`. Server code reads `serverEnv()` f
 - 2026-10-02 (1.7): The Test page runs through the `runSandboxTest` Server Action (`src/app/(dashboard)/test/actions.ts`, input schema in `schema.ts`). Its persona is the shop's agent name and tone, working for the sample store, with `SANDBOX_KNOWLEDGE` and `SandboxProvider`. Approval cards there only change local state; nothing reaches Shopify.
 - 2026-10-02 (1.7): The free-text limit (3/shop/UTC day) is enforced in the DB by security-definer RPCs `claim_sandbox_run` (with a per-shop advisory lock), `finish_sandbox_run` (token counts) and `release_sandbox_run` (a failed AI call gives the run back). Rows go in `usage_events` with kinds `sandbox_freetext` / `sandbox_preset`, which are not plan usage (`ai_reply` is, task 3.4). This keeps the rule of no service role in user context.
 - 2026-10-02 (1.7): The Test page shows "In a live conversation: …" using `decideOutcome` with the shop's real automation setting for the reply's category. Autopilot counts as allowed only on the growth/scale plans (finalised in 3.4). Anthropic errors become friendly messages (key rejected / check workspace and credit / busy / unavailable). Only status and class are logged.
+- 2026-10-04 (2.2): `ShopifyProvider` (`src/lib/shopify/provider.ts`) uses three queries in `queries.ts`, validated live against 2026-10 (cost 6–32 points each). The client (`client.ts`) retries THROTTLED using the cost/restore-rate info, and retries 429/5xx (honouring Retry-After). 401/403 throws an `auth` error. Every response is Zod-validated.
+- 2026-10-04 (2.2): `findOrders` searches by `email:"…"` (or by name when there's no email), then re-checks email and number in code. An order whose email Shopify hides (protected customer data not approved) never matches: it fails closed. `matchesOrderNumber` tolerates `#` and store prefixes. Product search keeps only plain words from customer text and always adds `status:active`, so drafts are never offered and the search can't be steered.
+- 2026-10-04 (2.2): Mapping: 18 Shopify fulfillment display statuses → our `ShipmentStatus` (added `shipped` for "marked fulfilled, no tracking"). Cancelled or errored fulfillments are dropped. `delayed` = Shopify DELAYED or ETA passed. Fulfillment status and `cancellable` are derived from line-item quantities. Untracked stock → `inventory: null` (not 0). Tracking fields and `shippingAddress` can be null.
+- 2026-10-04 (2.2): **Deviation from §7:** real conversations for a shop without Shopify connected do **not** fall back to the sample store, because real customers must never get made-up data. `storeProviderForShop()` (`src/lib/store/provider.ts`) returns `notConnectedProvider`, whose calls throw, so the agent escalates. The sample store is used only by the Test page.
 - 2026-10-03 (2.1): Shopify Admin API pin bumped to `2026-10`, the latest stable version per shopify.dev on 2026-10-03.
 - 2026-10-03 (2.1): Secrets use AES-256-GCM in `src/lib/crypto.ts`, format `v1.<iv>.<tag>.<ct>` (base64url). The new columns `shopify_refresh_token_enc`, `shopify_token_expires_at` and `shopify_refresh_expires_at` have no browser grants. The Store page reads the connection through the `shopify_connection_status()` RPC (no secrets). Disconnect goes through the `disconnect_shopify()` RPC, which only clears fields.
 - 2026-10-03 (2.1): OAuth state is a random 32-byte value in an httpOnly, SameSite=Lax, 10-minute cookie scoped to the callback path, together with our shop id. The callback checks, in order: HMAC → canonical `*.myshopify.com` domain → state (constant time) → signed-in membership → code exchange → granted scopes (write_x covers read_x) → domain not linked to another shop. Then it stores tokens.

@@ -30,7 +30,7 @@ export function orderView(o: OrderDetail): Json {
     total: price(o.total),
     total_refunded: price(o.totalRefunded),
     refunds: o.refunds.map((r) => ({ date: r.createdAt, amount: price(r.amount), note: r.note })),
-    shipping_address: { ...o.shippingAddress },
+    shipping_address: o.shippingAddress ? { ...o.shippingAddress } : null,
     shipment_count: o.fulfillments.length,
   };
 }
@@ -75,7 +75,7 @@ export function productView(p: ProductSummary): Json {
       size: v.title,
       price: price(v.price),
       in_stock: v.available,
-      quantity_available: v.inventory,
+      quantity_available: v.inventory ?? "stock not tracked",
     })),
   };
 }

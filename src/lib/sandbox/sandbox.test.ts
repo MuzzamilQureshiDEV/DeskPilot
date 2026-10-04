@@ -40,7 +40,7 @@ describe("sandbox data", () => {
     expect(has((o) => o.financialStatus === "refunded" && o.cancelledAt === null)).toBe(true);
     expect(has((o) => o.financialStatus === "partially_refunded")).toBe(true);
     expect(has((o) => o.cancelledAt !== null)).toBe(true);
-    expect(has((o) => o.shippingAddress.countryCode !== "US")).toBe(true);
+    expect(has((o) => o.shippingAddress?.countryCode !== "US")).toBe(true);
   });
 
   it("has unique ids and order numbers, and only known customers", () => {

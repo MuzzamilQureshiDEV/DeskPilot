@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "test:db": "vitest run tests/db",
     "seed:admin": "node --env-file=.env.local scripts/seed-admin.mts",
-    "test:ai": "vitest run --config vitest.live.config.mts"
+    "test:ai": "vitest run --config vitest.live.config.mts tests/ai",
+    "test:shopify": "vitest run --config vitest.live.config.mts tests/shopify"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",

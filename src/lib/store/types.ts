@@ -6,20 +6,25 @@ export type Money = { amount: string; currency: string };
 
 export type FinancialStatus =
   | "pending"
+  | "authorized"
+  | "partially_paid"
   | "paid"
   | "partially_refunded"
   | "refunded"
-  | "voided";
+  | "voided"
+  | "expired";
 
 export type FulfillmentStatus = "unfulfilled" | "partially_fulfilled" | "fulfilled";
 
 export type ShipmentStatus =
   | "label_created"
+  /** Marked as shipped by the merchant, without carrier tracking updates. */
+  | "shipped"
   | "in_transit"
   | "out_for_delivery"
   | "attempted_delivery"
   | "delivered"
-  | "failure";
+  | "failure"; // cancelled shipments are left out by providers
 
 export type Address = {
   name: string;
@@ -61,9 +66,10 @@ export type LineItem = {
 export type Fulfillment = {
   id: string;
   status: ShipmentStatus;
-  carrier: string;
-  trackingNumber: string;
-  trackingUrl: string;
+  /** Null when the merchant marked it shipped without tracking details. */
+  carrier: string | null;
+  trackingNumber: string | null;
+  trackingUrl: string | null;
   shippedAt: string;
   estimatedDeliveryAt: string | null;
   deliveredAt: string | null;
@@ -78,7 +84,8 @@ export type OrderDetail = OrderSummary & {
   lineItems: LineItem[];
   fulfillments: Fulfillment[];
   refunds: Refund[];
-  shippingAddress: Address;
+  /** Null when nothing needs shipping (e.g. digital items). */
+  shippingAddress: Address | null;
   subtotal: Money;
   shipping: Money;
   totalRefunded: Money;
@@ -91,7 +98,8 @@ export type ProductVariant = {
   title: string;
   sku: string;
   price: Money;
-  inventory: number;
+  /** Units in stock, or null when the store doesn't track stock for this item. */
+  inventory: number | null;
   available: boolean;
 };
 
@@ -103,7 +111,8 @@ export type ProductSummary = {
   tags: string[];
   priceRange: { min: Money; max: Money };
   variants: ProductVariant[];
-  totalInventory: number;
+  /** Null when the store doesn't track stock for this product. */
+  totalInventory: number | null;
   available: boolean;
 };
 
@@ -114,7 +123,7 @@ export type OrderQuery = { orderNumber?: string; email?: string };
  * Implementations: ShopifyProvider (task 2.2) and SandboxProvider.
  */
 export interface StoreProvider {
-  readonly kind: "shopify" | "sandbox";
+  readonly kind: "shopify" | "sandbox" | "not_connected";
   /**
    * Filters are combined with AND. With no filters it returns [] rather than
    * listing every order.

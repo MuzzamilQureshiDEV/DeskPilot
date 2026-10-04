@@ -51,7 +51,7 @@ export const proposeAddressChange = defineTool({
       payload: {
         order_id: order.id,
         order_number: order.name,
-        current_address: { ...order.shippingAddress },
+        current_address: order.shippingAddress ? { ...order.shippingAddress } : null,
         new_address: {
           ...required,
           ...(address2 ? { address2 } : {}),
