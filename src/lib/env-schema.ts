@@ -19,6 +19,8 @@ export const serverEnvSchema = publicEnvSchema.extend({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   ENCRYPTION_KEY: encryptionKey.optional(),
   ANTHROPIC_API_KEY: z.string().min(1).optional(),
+  /** Dev only: "1" swaps Claude for a rule-based stand-in (ignored in production). */
+  DEV_FAKE_AI: z.string().optional(),
   SHOPIFY_API_KEY: z.string().min(1).optional(),
   SHOPIFY_API_SECRET: z.string().min(1).optional(),
   SHOPIFY_SCOPES: z.string().min(1).optional(),

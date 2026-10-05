@@ -3,7 +3,7 @@ import { NonRetriableError } from "inngest";
 
 import { inngest } from "@/inngest/client";
 import { MESSAGE_RECEIVED, messageReceivedSchema } from "@/inngest/events";
-import { anthropicClient } from "@/lib/ai/client";
+import { agentClient } from "@/lib/ai/client";
 import { markFailed, prepareRun, runAndDecide, saveResult } from "@/lib/ai/process-message";
 import { storeProviderForShop } from "@/lib/store/provider";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -42,7 +42,7 @@ export const processMessage = inngest.createFunction(
     const result = await step.run("run-agent", async () => {
       try {
         return await runAndDecide(prepared.input, {
-          client: anthropicClient(),
+          client: agentClient(),
           provider: await storeProviderForShop(ref.shopId),
         });
       } catch (err) {

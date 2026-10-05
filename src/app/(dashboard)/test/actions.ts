@@ -3,18 +3,17 @@
 import Anthropic from "@anthropic-ai/sdk";
 
 import { runAgent } from "@/lib/ai/agent";
-import { anthropicClient } from "@/lib/ai/client";
+import { agentClient, aiConfigured } from "@/lib/ai/client";
 import { decideOutcome, type AutomationSetting } from "@/lib/ai/outcome";
 import type { ProposedAction } from "@/lib/ai/tools/types";
 import { getCurrentShop } from "@/lib/auth/session";
+import { summarizeAction } from "@/lib/inbox/action-summary";
 import { PLANS, planOf } from "@/lib/billing/plans";
 import { loadKnowledge } from "@/lib/knowledge/load";
-import { serverEnv } from "@/lib/env";
 import { SANDBOX_KNOWLEDGE, SANDBOX_STORE_NAME } from "@/lib/sandbox/data";
 import { SandboxProvider } from "@/lib/sandbox/provider";
 import { SCENARIOS, sandboxCustomer } from "@/lib/sandbox/scenarios";
 import { createClient } from "@/lib/supabase/server";
-import type { Json } from "@/types/database";
 
 import {
   sandboxRunSchema,
@@ -25,53 +24,8 @@ import {
 
 const DEFAULT_SETTING: AutomationSetting = { mode: "copilot", confidenceThreshold: 0.85 };
 
-function str(v: Json | undefined): string {
-  return typeof v === "string" || typeof v === "number" ? String(v) : "";
-}
-
-function addressLine(v: Json | undefined): string {
-  if (!v || typeof v !== "object" || Array.isArray(v)) return "";
-  return [v.address1, v.address2, v.city, v.province, v.zip, v.country].map(str).filter(Boolean).join(", ");
-}
-
-/** Turns a proposal payload into what the approval card shows. */
-function summarize(p: ProposedAction): SandboxProposal {
-  const orderNumber = str(p.payload.order_number);
-  if (p.type === "refund") {
-    const items = Array.isArray(p.payload.line_items) ? p.payload.line_items : [];
-    return {
-      type: "refund",
-      orderNumber,
-      title: `Refund ${str(p.payload.amount)} ${str(p.payload.currency)}`,
-      details: [
-        ...items.map((li) =>
-          li && typeof li === "object" && !Array.isArray(li)
-            ? `${str(li.quantity)} × ${str(li.title)}${li.size ? ` (${str(li.size)})` : ""}`
-            : "",
-        ).filter(Boolean),
-        `Reason: ${str(p.payload.reason)}`,
-      ],
-    };
-  }
-  if (p.type === "cancel") {
-    return {
-      type: "cancel",
-      orderNumber,
-      title: "Cancel order",
-      details: [`Refund ${str(p.payload.refund_amount)} ${str(p.payload.currency)} on cancel`, `Reason: ${str(p.payload.reason)}`],
-    };
-  }
-  return {
-    type: "address_change",
-    orderNumber,
-    title: "Change shipping address",
-    details: [
-      `From: ${addressLine(p.payload.current_address)}`,
-      `To: ${addressLine(p.payload.new_address)}`,
-      `Reason: ${str(p.payload.reason)}`,
-    ],
-  };
-}
+/** Turns a proposal into what the approval card shows. */
+const summarize = (p: ProposedAction): SandboxProposal => summarizeAction(p.type, p.payload);
 
 function aiErrorMessage(err: InstanceType<typeof Anthropic.APIError>): string {
   if (err instanceof Anthropic.AuthenticationError) return "The Anthropic API key was rejected. Check ANTHROPIC_API_KEY.";
@@ -92,7 +46,7 @@ export async function runSandboxTest(raw: unknown): Promise<SandboxRunResponse> 
 
   const shop = await getCurrentShop();
   if (!shop) return { ok: false, code: "no_shop", message: "Your account isn't linked to a store." };
-  if (!serverEnv().ANTHROPIC_API_KEY) {
+  if (!aiConfigured()) {
     return { ok: false, code: "not_configured", message: "The AI isn't connected yet. Add ANTHROPIC_API_KEY to enable test runs." };
   }
 
@@ -120,7 +74,7 @@ export async function runSandboxTest(raw: unknown): Promise<SandboxRunResponse> 
   let result;
   try {
     result = await runAgent({
-      client: anthropicClient(),
+      client: agentClient(),
       shop: { agentName: shop.agentName, agentTone: shop.agentTone, shopName: SANDBOX_STORE_NAME },
       knowledge,
       provider: new SandboxProvider(),

@@ -305,13 +305,29 @@ function quoted(value: string): string {
   return `"${value.replace(/["\\]/g, "")}"`;
 }
 
+/** Filler words customers type that would otherwise have to match a product. */
+const SEARCH_STOP_WORDS = new Set(
+  ("a an and any are can could do does for from have hi hello hey i in is it me my of on or not please " +
+    "show sell stock still that the there this to want what which with you your available looking need get buy got")
+    .split(" "),
+);
+
 /**
- * Keeps only plain words from customer text, so it can't inject search
- * operators (e.g. "status:draft") into the product query.
+ * Builds a Shopify product search from customer text: plain words only (so it
+ * can't inject operators like "status:draft"), filler words dropped, plural
+ * and singular forms, any word may match (results are sorted by relevance).
  */
 export function productSearchQuery(text: string): string | null {
-  const terms = (text.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []).slice(0, 8);
-  return terms.length > 0 ? `status:active ${terms.join(" ")}` : null;
+  const words = (text.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []).filter(
+    (w) => w.length > 1 && !SEARCH_STOP_WORDS.has(w),
+  );
+  const forms = new Set<string>();
+  for (const w of words.slice(0, 6)) {
+    forms.add(w);
+    // Simple singular: boots → boot, but not glass/status/chassis.
+    if (w.length > 3 && w.endsWith("s") && !/(ss|us|is)$/.test(w)) forms.add(w.slice(0, -1));
+  }
+  return forms.size > 0 ? `status:active (${[...forms].join(" OR ")})` : null;
 }
 
 const SHOPIFY_ORDER_ID = /^gid:\/\/shopify\/Order\/\d+$/;

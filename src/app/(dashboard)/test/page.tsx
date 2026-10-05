@@ -5,7 +5,7 @@ import { PageHeader, PageShell } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getCurrentShop } from "@/lib/auth/session";
-import { serverEnv } from "@/lib/env";
+import { aiConfigured } from "@/lib/ai/client";
 import { buildSandboxStore, SANDBOX_SCENARIOS, SANDBOX_STORE_NAME } from "@/lib/sandbox/data";
 import { SANDBOX_FREE_TEXT_DAILY_LIMIT } from "@/lib/sandbox/scenarios";
 import { createClient } from "@/lib/supabase/server";
@@ -30,7 +30,7 @@ async function freeTextRunsToday(shopId: string): Promise<number> {
 export default async function TestPage() {
   const shop = await getCurrentShop();
   const agentName = shop?.agentName ?? "Your agent";
-  const aiReady = !!serverEnv().ANTHROPIC_API_KEY;
+  const aiReady = aiConfigured();
   const used = shop ? await freeTextRunsToday(shop.id) : SANDBOX_FREE_TEXT_DAILY_LIMIT;
   const orders = buildSandboxStore().orders;
 

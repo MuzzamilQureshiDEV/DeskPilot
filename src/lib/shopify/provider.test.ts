@@ -209,7 +209,7 @@ describe("searchProducts", () => {
   it("maps stock per size and only searches active products", async () => {
     const { p, variables } = provider({ products: { nodes: [product] } });
     const [res] = await p.searchProducts("rain jacket?");
-    expect(variables(0)).toEqual({ query: "status:active rain jacket" });
+    expect(variables(0)).toEqual({ query: "status:active (rain OR jacket)" });
     expect(res).toMatchObject({ title: "Trail Jacket", totalInventory: 3, available: true, priceRange: { min: { amount: "149.00" } } });
     expect(res?.variants.map((v) => [v.title, v.inventory, v.available])).toEqual([
       ["M", 3, true],
@@ -226,9 +226,12 @@ describe("searchProducts", () => {
 });
 
 describe("helpers", () => {
-  it("productSearchQuery drops search operators from customer text", () => {
-    expect(productSearchQuery('status:draft OR vendor:"x"')).toBe("status:active status draft or vendor x");
+  it("productSearchQuery drops operators and filler words, and adds singulars", () => {
+    // Operators can't survive: colons and quotes are stripped, "or" is filler.
+    expect(productSearchQuery('status:draft OR vendor:"x"')).toBe("status:active (status OR draft OR vendor)");
+    expect(productSearchQuery("Hi! Do you have any snowboards in stock?")).toBe("status:active (snowboards OR snowboard)");
     expect(productSearchQuery("  ??  ")).toBeNull();
+    expect(productSearchQuery("do you have any?")).toBeNull();
   });
 
   it("matchesOrderNumber handles # and store prefixes", () => {

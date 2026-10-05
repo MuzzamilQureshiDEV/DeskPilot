@@ -119,13 +119,15 @@ export async function runAgent(input: AgentInput): Promise<AgentResult> {
   };
   const usage: AgentUsage = { apiCalls: 0, inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 };
   const toolCalls: ToolCallLog[] = [];
+  // The model that actually answered (recorded in usage); starts as the requested one.
+  let servedModel: string = model;
 
   const finish = (response: RespondOutput, fallback: FallbackReason | null): AgentResult => ({
     response,
     proposals: ctx.proposals,
     toolCalls,
     usage,
-    model,
+    model: servedModel,
     fallback,
   });
   const fail = (reason: FallbackReason) =>
@@ -143,6 +145,7 @@ export async function runAgent(input: AgentInput): Promise<AgentResult> {
       messages,
     });
 
+    servedModel = res.model;
     usage.apiCalls += 1;
     usage.inputTokens += res.usage.input_tokens;
     usage.outputTokens += res.usage.output_tokens;
