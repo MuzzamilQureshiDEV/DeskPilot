@@ -4,7 +4,7 @@ import Link from "next/link";
 
 import { PageHeader, PageShell } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CHANNEL_CAN_SEND } from "@/lib/ai/process-message";
+import { emailSendingEnabled } from "@/lib/email/outbound";
 import { getCurrentShop } from "@/lib/auth/session";
 import { isMoneyCategory, loadSettings, MODE_META } from "@/lib/automation/settings";
 import { PLANS, planOf } from "@/lib/billing/plans";
@@ -49,10 +49,10 @@ export default async function AutomationPage() {
           </span>
         </p>
       )}
-      {autopilotAllowed && !CHANNEL_CAN_SEND && (
+      {autopilotAllowed && !emailSendingEnabled() && (
         <p className="flex items-start gap-2 rounded-lg border border-dashed px-3 py-2 text-sm text-muted-foreground">
           <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
-          Autopilot replies are saved as drafts until your support email is connected.
+          Autopilot replies are saved as drafts until email sending is set up.
         </p>
       )}
 

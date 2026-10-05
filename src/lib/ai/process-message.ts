@@ -6,6 +6,7 @@ import type { Channel, HistoryMessage } from "@/lib/ai/prompts";
 import type { KnowledgeEntry } from "@/lib/ai/tools/types";
 import { aiAccess, PLANS, planOf } from "@/lib/billing/plans";
 import { aiRepliesThisPeriod } from "@/lib/billing/usage";
+import { emailSendingEnabled } from "@/lib/email/outbound";
 import { loadKnowledge } from "@/lib/knowledge/load";
 import type { StoreProvider } from "@/lib/store/types";
 import type { Database, Json } from "@/types/database";
@@ -18,8 +19,6 @@ type Db = SupabaseClient<Database>;
 
 export const HISTORY_LIMIT = 20;
 
-/** Outbound sending arrives with email in task 3.3. Until then nothing is auto-sent. */
-export const CHANNEL_CAN_SEND = false;
 
 const DEFAULT_SETTING: AutomationSetting = { mode: "copilot", confidenceThreshold: 0.85 };
 
@@ -46,6 +45,8 @@ export type RunInput = {
   knowledge: KnowledgeEntry[];
   settings: Record<string, AutomationSetting>;
   autopilotAllowedByPlan: boolean;
+  /** Whether a reply could actually be emailed right now (email channel + sending configured). */
+  canSend: boolean;
 };
 
 export type Prepared = { skip: SkipReason } | { skip: null; input: RunInput };
@@ -139,6 +140,7 @@ export async function prepareRun(db: Db, ref: MessageRef, now: Date = new Date()
       knowledge,
       settings,
       autopilotAllowedByPlan: PLANS[planOf(shop.plan)].autopilot,
+      canSend: channel === "email" && emailSendingEnabled(),
     },
   };
 }
@@ -172,8 +174,8 @@ export async function runAndDecide(
   const r = result.response;
   const setting = input.settings[r.category] ?? DEFAULT_SETTING;
   const outcome = decideOutcome(result, setting, {
-    // Nothing is auto-sent until a channel can actually send (task 3.3).
-    autopilotAllowedByPlan: input.autopilotAllowedByPlan && CHANNEL_CAN_SEND,
+    // Nothing is auto-sent unless the reply can actually be emailed.
+    autopilotAllowedByPlan: input.autopilotAllowedByPlan && input.canSend,
   });
 
   return {

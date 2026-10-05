@@ -62,16 +62,14 @@ export function buildChecklist(s: SetupState, agent: string): ChecklistItem[] {
       done: s.emailConnected,
       href: "/settings",
       cta: "Set up email",
-      comingSoon: !s.emailConnected,
     },
     {
       id: "live",
       title: "Go live",
-      description: `${agent} starts drafting replies to real customer emails.`,
+      description: `Send your first reply to a real customer email. ${agent} drafts it, you approve.`,
       done: s.live,
-      href: "/settings",
-      cta: "Go live",
-      comingSoon: !s.live,
+      href: "/inbox",
+      cta: "Open inbox",
     },
   ];
 }

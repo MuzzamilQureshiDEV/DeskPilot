@@ -143,6 +143,7 @@ export type Database = {
           external_thread_id: string | null
           id: string
           last_message_at: string | null
+          reply_token: string
           sentiment: string | null
           shop_id: string
           status: Database["public"]["Enums"]["conv_status"]
@@ -157,6 +158,7 @@ export type Database = {
           external_thread_id?: string | null
           id?: string
           last_message_at?: string | null
+          reply_token?: string
           sentiment?: string | null
           shop_id: string
           status?: Database["public"]["Enums"]["conv_status"]
@@ -171,6 +173,7 @@ export type Database = {
           external_thread_id?: string | null
           id?: string
           last_message_at?: string | null
+          reply_token?: string
           sentiment?: string | null
           shop_id?: string
           status?: Database["public"]["Enums"]["conv_status"]
@@ -344,9 +347,12 @@ export type Database = {
           confidence: number | null
           conversation_id: string
           created_at: string | null
+          delivered_at: string | null
+          delivery_error: string | null
           external_message_id: string | null
           id: string
           reasoning: string | null
+          rfc_message_id: string | null
           role: Database["public"]["Enums"]["msg_role"]
           shop_id: string
           status: Database["public"]["Enums"]["msg_status"]
@@ -356,9 +362,12 @@ export type Database = {
           confidence?: number | null
           conversation_id: string
           created_at?: string | null
+          delivered_at?: string | null
+          delivery_error?: string | null
           external_message_id?: string | null
           id?: string
           reasoning?: string | null
+          rfc_message_id?: string | null
           role: Database["public"]["Enums"]["msg_role"]
           shop_id: string
           status: Database["public"]["Enums"]["msg_status"]
@@ -368,9 +377,12 @@ export type Database = {
           confidence?: number | null
           conversation_id?: string
           created_at?: string | null
+          delivered_at?: string | null
+          delivery_error?: string | null
           external_message_id?: string | null
           id?: string
           reasoning?: string | null
+          rfc_message_id?: string | null
           role?: Database["public"]["Enums"]["msg_role"]
           shop_id?: string
           status?: Database["public"]["Enums"]["msg_status"]
@@ -425,6 +437,7 @@ export type Database = {
           created_at: string | null
           id: string
           inbound_email: string | null
+          inbound_hash: string
           name: string
           plan: Database["public"]["Enums"]["plan_tier"]
           setup: Json
@@ -446,6 +459,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           inbound_email?: string | null
+          inbound_hash?: string
           name: string
           plan?: Database["public"]["Enums"]["plan_tier"]
           setup?: Json
@@ -467,6 +481,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           inbound_email?: string | null
+          inbound_hash?: string
           name?: string
           plan?: Database["public"]["Enums"]["plan_tier"]
           setup?: Json

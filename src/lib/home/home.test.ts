@@ -7,22 +7,22 @@ import { agentSettingsSchema, presetFor, toneText } from "@/lib/settings/agent";
 const fresh: SetupState = { storeConnected: false, policyCount: 0, emailConnected: false, toneChosen: false, testRuns: 0, live: false };
 
 describe("setup checklist", () => {
-  it("starts with nothing done; email and go-live are not available yet", () => {
+  it("starts with nothing done", () => {
     const items = buildChecklist(fresh, "Ava");
     expect(items.map((i) => i.id)).toEqual(["store", "policies", "tone", "test", "email", "live"]);
     expect(items.every((i) => !i.done)).toBe(true);
-    expect(items.filter((i) => i.comingSoon).map((i) => i.id)).toEqual(["email", "live"]);
-    expect(checklistProgress(items)).toEqual({ done: 0, total: 4 });
+    expect(items.some((i) => i.comingSoon)).toBe(false);
+    expect(checklistProgress(items)).toEqual({ done: 0, total: 6 });
     expect(items[2]?.title).toBe("Name Ava and choose a tone");
   });
 
   it("ticks steps off from real state", () => {
     const items = buildChecklist({ ...fresh, storeConnected: true, policyCount: 2, toneChosen: true, testRuns: 1 }, "Ava");
     expect(items.filter((i) => i.done).map((i) => i.id)).toEqual(["store", "policies", "tone", "test"]);
-    expect(checklistProgress(items)).toEqual({ done: 4, total: 4 });
+    expect(checklistProgress(items)).toEqual({ done: 4, total: 6 });
   });
 
-  it("counts email and go-live once they're done", () => {
+  it("ticks email and go-live", () => {
     const items = buildChecklist({ ...fresh, emailConnected: true, live: true }, "Ava");
     expect(checklistProgress(items)).toEqual({ done: 2, total: 6 });
   });

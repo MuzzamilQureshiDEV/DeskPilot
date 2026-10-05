@@ -5,6 +5,7 @@ import { inngest } from "@/inngest/client";
 import { MESSAGE_RECEIVED, messageReceivedSchema } from "@/inngest/events";
 import { agentClient } from "@/lib/ai/client";
 import { markFailed, prepareRun, runAndDecide, saveResult } from "@/lib/ai/process-message";
+import { deliverMessage } from "@/lib/email/outbound";
 import { storeProviderForShop } from "@/lib/store/provider";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -56,11 +57,18 @@ export const processMessage = inngest.createFunction(
 
     const aiMessageId = await step.run("save", () => saveResult(createAdminClient(), ref, result));
 
+    // Autopilot: email the reply. deliverMessage skips already-delivered messages, so a retry never re-sends.
+    const delivery =
+      result.reply.status === "sent"
+        ? await step.run("deliver", () => deliverMessage(createAdminClient(), ref.shopId, aiMessageId))
+        : null;
+
     return {
       aiMessageId,
       status: result.conversation.status,
       actions: result.actions.length,
       fallback: result.meta.fallback,
+      delivery: delivery?.status ?? null,
     };
   },
 );

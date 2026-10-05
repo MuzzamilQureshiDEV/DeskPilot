@@ -74,7 +74,8 @@ npm run test:db        # tenant-isolation tests against the linked cloud project
 npm run test:shopify   # LIVE ShopifyProvider tests against the connected dev store
 npm run test:ai        # LIVE agent tests on the real Claude API (costs money; needs ANTHROPIC_API_KEY)
 npm run dev:inngest    # Inngest dev server (needs INNGEST_DEV=1 in .env.local + npm run dev)
-npm run dev:message -- "text" [customer-email]   # simulate an inbound email for the demo shop
+npm run dev:message -- "text" [customer-email]   # simulate an inbound email for the demo shop (skips the webhook)
+npm run dev:email -- "text" [customer-email] [subject]   # post a Postmark payload to the local webhook (--auto-reply to test filters)
 npm run seed:admin     # dev test login (admin@deskpilot.test + demo shop); re-run resets password
                        # custom: npm run seed:admin -- <email> "<password>" "<shop name>"
 npm run build
@@ -453,6 +454,8 @@ INNGEST_EVENT_KEY=
 INNGEST_SIGNING_KEY=
 POSTMARK_SERVER_TOKEN=
 POSTMARK_INBOUND_TOKEN=
+POSTMARK_INBOUND_ADDRESS=                 # <hash>@inbound.postmarkapp.com (until we have a domain)
+POSTMARK_FROM_EMAIL=                      # verified Sender Signature; unset = dev outbox (replies not emailed)
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
 SENTRY_DSN=
@@ -497,7 +500,7 @@ Validated with Zod in `src/lib/env-schema.ts`. Server code reads `serverEnv()` f
 ### Phase 3 — Days 3–10
 - [x] 3.1 Action requests: approval UI + `execute-action` (refund, cancel, address change). Mutations validated against the live store (fake order id); a real end-to-end run needs a test order in the dev store
 - [x] 3.2 Automation settings + autopilot logic (auto-send activates with email in 3.3)
-- [ ] 3.3 Email forwarding inbound + outbound (Postmark) + loop protection + filtered emails
+- [x] 3.3 Email forwarding inbound + outbound (Postmark) + loop protection + filtered emails
 - [ ] 3.4 Usage tracking + plan limits + Stripe subscriptions + trial
 - [ ] 3.5 Shopify `app/uninstalled` + GDPR webhooks
 - [ ] 3.6 Escalations page, Approvals page, realtime inbox
@@ -513,6 +516,7 @@ Validated with Zod in `src/lib/env-schema.ts`. Server code reads `serverEnv()` f
 - [ ] Add a working `ANTHROPIC_API_KEY` with API credit, then run `npm run test:ai` (the agent hasn't been run against the live model yet).
 
 ### Decisions log
+- 2026-10-05 (3.3): No domain yet, so shop addresses use Postmark plus-addressing: forwarding to `<server>+<shops.inbound_hash>@inbound.postmarkapp.com`; Reply-To is `<server>+<inbound_hash>.<conversations.reply_token>@...`, which threads exactly. Threading order: reply token, then In-Reply-To/References (`messages.rfc_message_id`), then same normalized subject within 14 days (not resolved), else a new conversation. Webhook auth is HTTP Basic (password `POSTMARK_INBOUND_TOKEN`, set in Postmark's InboundHookUrl); a bad password returns 403 so Postmark stops retrying. Dedupe on `external_message_id = pm:<MessageID>`. Loop protection (`src/lib/email/filters.ts`): Auto-Submitted, X-Autoreply/Autorespond/Auto-Response-Suppress, Precedence bulk/list/junk, no-reply senders, our own addresses, more than 5 emails per sender in 10 minutes. Gmail's forwarding confirmation is filtered, but its code/link is saved to `shops.setup.forwarding_confirmation` and shown in Settings. Outbound (`deliverMessage`) sends only sent ai/human replies on email conversations, once (`delivered_at`); failures are stored in `delivery_error` with a Resend button. Without `POSTMARK_FROM_EMAIL` it runs as a dev outbox, and autopilot stays draft-only (`emailSendingEnabled()` replaced `CHANNEL_CAN_SEND`). Checklist: email done = `setup.email_connected`; go-live done = any delivered reply.
 - 2026-10-02: Sonnet model ID corrected from `claude-sonnet-5-5` (doesn't exist) to `claude-sonnet-5`.
 - 2026-10-02: No Docker locally → develop against a Supabase cloud dev project (`supabase link` + `db push`, types via `--linked`). Supabase CLI is a devDependency.
 - 2026-10-02: Next.js 16.3: session refresh lives in `src/proxy.ts` (`middleware` is deprecated). Proxy skips webhook/Inngest routes. In dev, missing Supabase env skips the refresh; in production it throws.

@@ -42,7 +42,7 @@ export default async function HomePage() {
 
   const supabase = await createClient();
   const now = new Date();
-  const [{ data: connection }, { count: policyCount }, { data: shopRow }, { count: testRuns }, used, stats, { data: attention }] =
+  const [{ data: connection }, { count: policyCount }, { data: shopRow }, { count: testRuns }, used, stats, { data: attention }, { count: delivered }] =
     await Promise.all([
       supabase.rpc("shopify_connection_status", { p_shop_id: shop.id }).maybeSingle(),
       supabase.from("knowledge").select("id", { count: "exact", head: true }).eq("shop_id", shop.id).eq("kind", "policy"),
@@ -61,6 +61,8 @@ export default async function HomePage() {
         .in("status", NEEDS_ATTENTION.filter((s) => s !== "open"))
         .order("last_message_at", { ascending: false })
         .limit(5),
+      // Only email replies get delivered_at, so any row means a real customer got one.
+      supabase.from("messages").select("id", { count: "exact", head: true }).eq("shop_id", shop.id).not("delivered_at", "is", null),
     ]);
 
   const agent = shop.agentName;
@@ -68,10 +70,10 @@ export default async function HomePage() {
     {
       storeConnected: !!connection?.domain && !connection.needs_reconnect,
       policyCount: policyCount ?? 0,
-      emailConnected: false, // arrives with email forwarding (3.3)
+      emailConnected: flag(shopRow?.setup, "email_connected"),
       toneChosen: flag(shopRow?.setup, "tone_chosen"),
       testRuns: testRuns ?? 0,
-      live: flag(shopRow?.setup, "live"),
+      live: (delivered ?? 0) > 0,
     },
     agent,
   );

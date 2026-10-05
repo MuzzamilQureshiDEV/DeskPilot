@@ -9,26 +9,51 @@ import { Textarea } from "@/components/ui/textarea";
 
 import {
   rejectDraftAction,
+  resendEmailAction,
   requestDraftAction,
   resolveAction,
   sendDraftAction,
   sendReplyAction,
   takeoverAction,
+  type Result,
 } from "../actions";
 
-type Result = { ok: true } | { ok: false; error: string };
+/** What happened to the email after a reply was sent. */
+function deliveryNotice(res: Result): string | null {
+  if (!res.ok || !res.delivery) return null;
+  if (res.delivery === "delivered") return "Emailed to the customer.";
+  if (res.delivery === "dev_outbox") return "Saved here. Email sending isn't set up yet, so it wasn't emailed.";
+  return null;
+}
 
 /** Runs a server action and keeps its error message (the page refreshes itself on success). */
 function useAction() {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const run = (fn: () => Promise<Result>, onOk?: () => void) =>
     start(async () => {
       const res = await fn();
-      setError(res.ok ? null : res.error);
+      if (!res.ok) setError(res.error);
+      else if (res.delivery === "failed") setError(`Saved here, but the email couldn't be sent: ${res.deliveryError ?? "unknown error"}`);
+      else setError(null);
+      setNotice(deliveryNotice(res));
       if (res.ok) onOk?.();
     });
-  return { pending, error, run };
+  return { pending, error, notice, run };
+}
+
+/** Retry emailing a reply that was saved but not delivered. */
+export function ResendButton({ messageId }: { messageId: string }) {
+  const { pending, error, notice, run } = useAction();
+  return (
+    <span className="flex items-center gap-2">
+      <Button size="xs" variant="outline" disabled={pending} onClick={() => run(() => resendEmailAction(messageId))}>
+        {pending ? "Sending…" : "Resend email"}
+      </Button>
+      {(error || notice) && <span className={error ? "text-destructive" : "text-primary"}>{error ?? notice}</span>}
+    </span>
+  );
 }
 
 function confidenceVariant(c: number) {
@@ -112,7 +137,7 @@ export function DraftCard({
 
 export function ReplyComposer({ conversationId }: { conversationId: string }) {
   const [text, setText] = useState("");
-  const { pending, error, run } = useAction();
+  const { pending, error, notice, run } = useAction();
   return (
     <form
       className="flex flex-col gap-2"
@@ -129,6 +154,11 @@ export function ReplyComposer({ conversationId }: { conversationId: string }) {
         placeholder="Write a reply yourself…"
         aria-label="Your reply"
       />
+      {notice && !error && (
+        <p role="status" className="text-sm text-primary">
+          {notice}
+        </p>
+      )}
       {error && (
         <p role="alert" className="text-sm text-destructive">
           {error}

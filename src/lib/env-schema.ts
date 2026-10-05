@@ -30,7 +30,11 @@ export const serverEnvSchema = publicEnvSchema.extend({
   INNGEST_EVENT_KEY: z.string().min(1).optional(),
   INNGEST_SIGNING_KEY: z.string().min(1).optional(),
   POSTMARK_SERVER_TOKEN: z.string().min(1).optional(),
-  POSTMARK_INBOUND_TOKEN: z.string().min(1).optional(),
+  POSTMARK_INBOUND_TOKEN: z.string().min(16).optional(),
+  /** Postmark server inbound address, e.g. abc123@inbound.postmarkapp.com. */
+  POSTMARK_INBOUND_ADDRESS: z.email().optional(),
+  /** Verified Postmark sender signature. Unset = dev outbox (replies are recorded, not emailed). */
+  POSTMARK_FROM_EMAIL: z.email().optional(),
   STRIPE_SECRET_KEY: z.string().min(1).optional(),
   STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
   SENTRY_DSN: z.url().optional(),

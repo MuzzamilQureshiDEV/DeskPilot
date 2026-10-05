@@ -74,7 +74,7 @@ describe.skipIf(!hasDbEnv)("inbox actions (live DB, RLS client)", () => {
 
   it("sends a draft once and reopens the conversation", async () => {
     const { conversationId, draftId } = await withDraft();
-    expect(await sendDraft(db(), shopA, draftId)).toEqual({ ok: true });
+    expect(await sendDraft(db(), shopA, draftId)).toEqual({ ok: true, messageId: draftId });
     expect(await message(draftId)).toEqual({ status: "sent", body: "It's on the way." });
     expect((await conversation(conversationId))?.status).toBe("open");
     expect(await sendDraft(db(), shopA, draftId)).toMatchObject({ ok: false });
@@ -82,7 +82,7 @@ describe.skipIf(!hasDbEnv)("inbox actions (live DB, RLS client)", () => {
 
   it("sends an edited draft and keeps pending approvals visible", async () => {
     const { conversationId, draftId } = await withDraft("awaiting_approval");
-    expect(await sendDraft(db(), shopA, draftId, "  Edited reply  ")).toEqual({ ok: true });
+    expect(await sendDraft(db(), shopA, draftId, "  Edited reply  ")).toEqual({ ok: true, messageId: draftId });
     expect(await message(draftId)).toEqual({ status: "sent", body: "Edited reply" });
     expect((await conversation(conversationId))?.status).toBe("awaiting_approval");
     expect(await sendDraft(db(), shopA, (await withDraft()).draftId, "   ")).toMatchObject({ ok: false });
@@ -97,7 +97,7 @@ describe.skipIf(!hasDbEnv)("inbox actions (live DB, RLS client)", () => {
 
   it("records a merchant's own reply", async () => {
     const { conversationId } = await withDraft();
-    expect(await sendHumanReply(db(), shopA, conversationId, "I'll check for you!")).toEqual({ ok: true });
+    expect(await sendHumanReply(db(), shopA, conversationId, "I'll check for you!")).toMatchObject({ ok: true, messageId: expect.any(String) });
     const { data } = await admin.from("messages").select("role, status, body").eq("conversation_id", conversationId).eq("role", "human");
     expect(data).toEqual([{ role: "human", status: "sent", body: "I'll check for you!" }]);
     expect(await sendHumanReply(db(), shopA, conversationId, "")).toMatchObject({ ok: false });

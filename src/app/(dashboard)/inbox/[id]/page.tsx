@@ -1,4 +1,4 @@
-import { ArrowLeft, Info, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Info, MailCheck, MailX, ShieldCheck } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -7,6 +7,7 @@ import { PageShell } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCurrentShop } from "@/lib/auth/session";
+import { emailSendingEnabled } from "@/lib/email/outbound";
 import { toCardData } from "@/lib/actions/card";
 import type { ActionType } from "@/lib/inbox/action-summary";
 import { asStatus, STATUS_LABEL, STATUS_VARIANT, timeAgo } from "@/lib/inbox/labels";
@@ -15,7 +16,7 @@ import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
 import { ActionCard } from "../../approvals/action-card";
-import { ConversationControls, DraftCard, ReplyComposer } from "./conversation-actions";
+import { ConversationControls, DraftCard, ReplyComposer, ResendButton } from "./conversation-actions";
 
 export const metadata: Metadata = { title: "Conversation · DeskPilot" };
 
@@ -38,7 +39,7 @@ export default async function ConversationPage({ params }: PageProps<"/inbox/[id
   const [{ data: messages }, { data: actions }, unanswered] = await Promise.all([
     supabase
       .from("messages")
-      .select("id, role, status, body, confidence, reasoning, created_at")
+      .select("id, role, status, body, confidence, reasoning, created_at, delivered_at, delivery_error")
       .eq("conversation_id", id)
       .eq("shop_id", shop.id)
       .order("created_at", { ascending: true }),
@@ -54,6 +55,8 @@ export default async function ConversationPage({ params }: PageProps<"/inbox/[id
   const all = messages ?? [];
   const latestDraft = [...all].reverse().find((m) => m.role === "ai" && m.status === "draft");
   const status = asStatus(conv.status);
+  const isEmail = conv.channel === "email";
+  const sending = emailSendingEnabled();
   const agent = shop.agentName;
   const customerName = conv.customers?.name || conv.customers?.email || "Customer";
 
@@ -70,10 +73,12 @@ export default async function ConversationPage({ params }: PageProps<"/inbox/[id
         </div>
       </div>
 
-      <p className="flex items-start gap-2 rounded-lg border border-dashed px-3 py-2 text-sm text-muted-foreground">
-        <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
-        Email delivery isn&apos;t connected yet. Replies you send are recorded here but not emailed to the customer.
-      </p>
+      {isEmail && !sending && (
+        <p className="flex items-start gap-2 rounded-lg border border-dashed px-3 py-2 text-sm text-muted-foreground">
+          <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
+          Email sending isn&apos;t set up yet. Replies you send are recorded here but not emailed to the customer.
+        </p>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <div className="flex flex-col gap-4">
@@ -106,6 +111,21 @@ export default async function ConversationPage({ params }: PageProps<"/inbox/[id
                   >
                     {m.body}
                   </p>
+                  {isEmail && mine && m.status === "sent" && (
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      {m.delivered_at ? (
+                        <>
+                          <MailCheck className="size-3.5 text-primary" aria-hidden /> Emailed
+                        </>
+                      ) : (
+                        <>
+                          <MailX className="size-3.5" aria-hidden />
+                          {m.delivery_error ? `Not emailed: ${m.delivery_error}` : "Not emailed"}
+                          {sending && <ResendButton messageId={m.id} />}
+                        </>
+                      )}
+                    </span>
+                  )}
                 </li>
               );
             })}

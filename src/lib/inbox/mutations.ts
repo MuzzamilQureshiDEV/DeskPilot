@@ -9,7 +9,7 @@ import type { Database } from "@/types/database";
 // (e.g. only a draft can be sent), so double clicks are harmless.
 
 type Db = SupabaseClient<Database>;
-export type InboxResult = { ok: true } | { ok: false; error: string };
+export type InboxResult = { ok: true; messageId?: string } | { ok: false; error: string };
 
 export const replyBodySchema = z.string().trim().min(1, "Write a reply first").max(5000, "Keep replies under 5,000 characters");
 export const idSchema = z.uuid();
@@ -59,7 +59,7 @@ export async function sendDraft(db: Db, shopId: string, messageId: string, edite
       .eq("id", conversationId)
       .eq("shop_id", shopId);
   }
-  return { ok: true };
+  return { ok: true, messageId: id.data };
 }
 
 export async function rejectDraft(db: Db, shopId: string, messageId: string): Promise<InboxResult> {
@@ -93,16 +93,18 @@ export async function sendHumanReply(db: Db, shopId: string, conversationId: str
   const conv = await conversationOf(db, shopId, id.data);
   if (!conv) return fail("Unknown conversation.");
 
-  const { error } = await db
+  const { data: inserted, error } = await db
     .from("messages")
-    .insert({ shop_id: shopId, conversation_id: id.data, role: "human", status: "sent", body: body.data });
-  if (error) return fail("Couldn't send your reply. Please try again.");
+    .insert({ shop_id: shopId, conversation_id: id.data, role: "human", status: "sent", body: body.data })
+    .select("id")
+    .single();
+  if (error || !inserted) return fail("Couldn't send your reply. Please try again.");
   await db
     .from("conversations")
     .update({ status: statusAfterReply(conv), last_message_at: new Date().toISOString() })
     .eq("id", id.data)
     .eq("shop_id", shopId);
-  return { ok: true };
+  return { ok: true, messageId: inserted.id };
 }
 
 /** Take over (AI stops replying) or hand the conversation back to the AI. */
