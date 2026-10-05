@@ -30,6 +30,11 @@ export type CurrentShop = {
   agentTone: string;
   plan: string;
   trialEndsAt: string | null;
+  subscriptionStatus: string | null;
+  currentPeriodStart: string | null;
+  currentPeriodEnd: string | null;
+  cancelAtPeriodEnd: boolean;
+  hasStripeCustomer: boolean;
   role: string;
 };
 
@@ -42,7 +47,7 @@ export const getCurrentShop = cache(async (): Promise<CurrentShop | null> => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("shop_members")
-    .select("role, shops(id, name, agent_name, agent_tone, plan, trial_ends_at)")
+    .select("role, shops(id, name, agent_name, agent_tone, plan, trial_ends_at, subscription_status, current_period_start, current_period_end, cancel_at_period_end, stripe_customer_id)")
     .eq("user_id", user.id)
     .limit(1)
     .maybeSingle();
@@ -57,6 +62,11 @@ export const getCurrentShop = cache(async (): Promise<CurrentShop | null> => {
     agentTone: data.shops.agent_tone,
     plan: data.shops.plan,
     trialEndsAt: data.shops.trial_ends_at,
+    subscriptionStatus: data.shops.subscription_status,
+    currentPeriodStart: data.shops.current_period_start,
+    currentPeriodEnd: data.shops.current_period_end,
+    cancelAtPeriodEnd: data.shops.cancel_at_period_end,
+    hasStripeCustomer: !!data.shops.stripe_customer_id,
     role: data.role,
   };
 });

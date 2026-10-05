@@ -434,7 +434,10 @@ export type Database = {
         Row: {
           agent_name: string
           agent_tone: string
+          cancel_at_period_end: boolean
           created_at: string | null
+          current_period_end: string | null
+          current_period_start: string | null
           id: string
           inbound_email: string | null
           inbound_hash: string
@@ -450,13 +453,17 @@ export type Database = {
           shopify_token_expires_at: string | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
+          subscription_status: string | null
           support_from_email: string | null
           trial_ends_at: string | null
         }
         Insert: {
           agent_name?: string
           agent_tone?: string
+          cancel_at_period_end?: boolean
           created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
           id?: string
           inbound_email?: string | null
           inbound_hash?: string
@@ -472,13 +479,17 @@ export type Database = {
           shopify_token_expires_at?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          subscription_status?: string | null
           support_from_email?: string | null
           trial_ends_at?: string | null
         }
         Update: {
           agent_name?: string
           agent_tone?: string
+          cancel_at_period_end?: boolean
           created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
           id?: string
           inbound_email?: string | null
           inbound_hash?: string
@@ -494,8 +505,27 @@ export type Database = {
           shopify_token_expires_at?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          subscription_status?: string | null
           support_from_email?: string | null
           trial_ends_at?: string | null
+        }
+        Relationships: []
+      }
+      stripe_events: {
+        Row: {
+          id: string
+          received_at: string
+          type: string
+        }
+        Insert: {
+          id: string
+          received_at?: string
+          type: string
+        }
+        Update: {
+          id?: string
+          received_at?: string
+          type?: string
         }
         Relationships: []
       }
@@ -570,6 +600,10 @@ export type Database = {
         Returns: undefined
       }
       is_member: { Args: { s: string }; Returns: boolean }
+      link_stripe_customer: {
+        Args: { p_customer_id: string; p_shop_id: string }
+        Returns: undefined
+      }
       record_agent_result: {
         Args: {
           p_actions: Json

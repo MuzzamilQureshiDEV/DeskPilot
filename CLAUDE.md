@@ -76,6 +76,7 @@ npm run test:ai        # LIVE agent tests on the real Claude API (costs money; n
 npm run dev:inngest    # Inngest dev server (needs INNGEST_DEV=1 in .env.local + npm run dev)
 npm run dev:message -- "text" [customer-email]   # simulate an inbound email for the demo shop (skips the webhook)
 npm run dev:email -- "text" [customer-email] [subject]   # post a Postmark payload to the local webhook (--auto-reply to test filters)
+npm run stripe:setup     # one-time, idempotent: Stripe products/prices (lookup keys), portal config, webhook endpoint
 npm run seed:admin     # dev test login (admin@deskpilot.test + demo shop); re-run resets password
                        # custom: npm run seed:admin -- <email> "<password>" "<shop name>"
 npm run build
@@ -418,7 +419,7 @@ Test page: preset scenario buttons (cancel order, refund request, return questio
 | growth | 250 | yes | yes |
 | scale | custom | yes | yes |
 
-Prices are configured in Stripe, not hardcoded.
+Prices are configured in Stripe, not hardcoded: Starter $29/mo and Growth $79/mo (found by lookup keys `deskpilot_starter_monthly` / `deskpilot_growth_monthly`), Scale is "Contact us" and set by hand.
 
 ---
 
@@ -501,7 +502,7 @@ Validated with Zod in `src/lib/env-schema.ts`. Server code reads `serverEnv()` f
 - [x] 3.1 Action requests: approval UI + `execute-action` (refund, cancel, address change). Mutations validated against the live store (fake order id); a real end-to-end run needs a test order in the dev store
 - [x] 3.2 Automation settings + autopilot logic (auto-send activates with email in 3.3)
 - [x] 3.3 Email forwarding inbound + outbound (Postmark) + loop protection + filtered emails
-- [ ] 3.4 Usage tracking + plan limits + Stripe subscriptions + trial
+- [ ] 3.4 Usage tracking + plan limits + Stripe subscriptions + trial (code done; waiting for Stripe test key + live check)
 - [ ] 3.5 Shopify `app/uninstalled` + GDPR webhooks
 - [ ] 3.6 Escalations page, Approvals page, realtime inbox
 - [ ] 3.7 Storefront chat widget (theme app extension)
@@ -516,6 +517,7 @@ Validated with Zod in `src/lib/env-schema.ts`. Server code reads `serverEnv()` f
 - [ ] Add a working `ANTHROPIC_API_KEY` with API credit, then run `npm run test:ai` (the agent hasn't been run against the live model yet).
 
 ### Decisions log
+- 2026-10-06 (3.4): The trial stays in-app (14 days, no card). Upgrading uses Stripe Checkout; changing plan, cancelling (at period end), the card and invoices use the Stripe Customer Portal (our configuration has metadata app=deskpilot). The plan changes **only** in the verified webhook (`src/lib/stripe/webhook.ts`): it claims `stripe_events.id` first (a duplicate is skipped; a failure deletes the claim so Stripe retries), then re-fetches the subscription and writes plan/status/period/cancel flag. The shop comes from metadata.shop_id or client_reference_id, but only if that shop isn't linked to another customer; otherwise from `stripe_customer_id`. The end of an old subscription never cancels a newer one. `past_due` keeps the AI on; canceled/unpaid/incomplete/paused stop it (`subscription_inactive`). Paid usage counts from the Stripe period start, the trial and Scale from the UTC month. The owner-only `link_stripe_customer` RPC stores the customer id from the user-context action (no service role). Customer creation uses an idempotency key per shop.
 - 2026-10-05 (3.3): No domain yet, so shop addresses use Postmark plus-addressing: forwarding to `<server>+<shops.inbound_hash>@inbound.postmarkapp.com`; Reply-To is `<server>+<inbound_hash>.<conversations.reply_token>@...`, which threads exactly. Threading order: reply token, then In-Reply-To/References (`messages.rfc_message_id`), then same normalized subject within 14 days (not resolved), else a new conversation. Webhook auth is HTTP Basic (password `POSTMARK_INBOUND_TOKEN`, set in Postmark's InboundHookUrl); a bad password returns 403 so Postmark stops retrying. Dedupe on `external_message_id = pm:<MessageID>`. Loop protection (`src/lib/email/filters.ts`): Auto-Submitted, X-Autoreply/Autorespond/Auto-Response-Suppress, Precedence bulk/list/junk, no-reply senders, our own addresses, more than 5 emails per sender in 10 minutes. Gmail's forwarding confirmation is filtered, but its code/link is saved to `shops.setup.forwarding_confirmation` and shown in Settings. Outbound (`deliverMessage`) sends only sent ai/human replies on email conversations, once (`delivered_at`); failures are stored in `delivery_error` with a Resend button. Without `POSTMARK_FROM_EMAIL` it runs as a dev outbox, and autopilot stays draft-only (`emailSendingEnabled()` replaced `CHANNEL_CAN_SEND`). Checklist: email done = `setup.email_connected`; go-live done = any delivered reply.
 - 2026-10-02: Sonnet model ID corrected from `claude-sonnet-5-5` (doesn't exist) to `claude-sonnet-5`.
 - 2026-10-02: No Docker locally → develop against a Supabase cloud dev project (`supabase link` + `db push`, types via `--linked`). Supabase CLI is a devDependency.

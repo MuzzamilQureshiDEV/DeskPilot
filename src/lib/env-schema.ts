@@ -35,8 +35,10 @@ export const serverEnvSchema = publicEnvSchema.extend({
   POSTMARK_INBOUND_ADDRESS: z.email().optional(),
   /** Verified Postmark sender signature. Unset = dev outbox (replies are recorded, not emailed). */
   POSTMARK_FROM_EMAIL: z.email().optional(),
-  STRIPE_SECRET_KEY: z.string().min(1).optional(),
-  STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
+  STRIPE_SECRET_KEY: z.string().regex(/^(sk|rk)_(test|live)_/, "Use a Stripe secret key (sk_test_… or sk_live_…)").optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().startsWith("whsec_").optional(),
+  /** Shown on the Billing page for the custom Scale plan. */
+  SALES_EMAIL: z.email().optional(),
   SENTRY_DSN: z.url().optional(),
 });
 

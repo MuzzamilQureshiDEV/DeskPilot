@@ -7,8 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { getCurrentShop, requireUser } from "@/lib/auth/session";
-import { aiAccess } from "@/lib/billing/plans";
-import { aiRepliesThisPeriod } from "@/lib/billing/usage";
+import { loadAiAccess } from "@/lib/billing/usage";
 import { createClient } from "@/lib/supabase/server";
 
 const dateFormat = new Intl.DateTimeFormat("en", { month: "short", day: "numeric" });
@@ -22,9 +21,8 @@ export default async function DashboardLayout({ children }: LayoutProps<"/">) {
     : { data: null };
   const storeConnected = !!connection?.domain && !connection.needs_reconnect;
   // Rule 7: over the limit (or trial ended), messages still arrive but the AI stops.
-  const access = shop
-    ? aiAccess({ plan: shop.plan, trialEndsAt: shop.trialEndsAt }, await aiRepliesThisPeriod(supabase, shop.id, new Date()), new Date())
-    : null;
+  const access = shop ? (await loadAiAccess(supabase, shop.id, shop, new Date())).access : null;
+  const pastDue = shop?.subscriptionStatus === "past_due";
   // Remember collapsed/expanded across reloads (cookie set by SidebarProvider).
   const sidebarOpen = (await cookies()).get("sidebar_state")?.value !== "false";
 
@@ -47,11 +45,22 @@ export default async function DashboardLayout({ children }: LayoutProps<"/">) {
             <span>
               {access.reason === "trial_ended"
                 ? "Your free trial has ended."
-                : "You've used all your AI replies for this month."}{" "}
-              New messages still arrive, but {shop?.agentName ?? "your agent"} won&apos;t draft replies until you upgrade.
+                : access.reason === "subscription_inactive"
+                  ? "Your subscription isn't active."
+                  : "You've used all your AI replies for this billing period."}{" "}
+              New messages still arrive, but {shop?.agentName ?? "your agent"} won&apos;t draft replies until{" "}
+              {access.reason === "usage_limit" ? "you upgrade or the period resets" : "you choose a plan"}.
             </span>
             <Link href="/billing" className="font-medium underline underline-offset-2">
               See plans
+            </Link>
+          </div>
+        )}
+        {access?.allowed && pastDue && (
+          <div role="alert" className="flex flex-wrap items-center justify-between gap-2 border-b bg-destructive/10 px-4 py-2 text-sm text-destructive">
+            <span>Your last payment failed. Update your card to keep {shop?.agentName ?? "your agent"} running.</span>
+            <Link href="/billing" className="font-medium underline underline-offset-2">
+              Update card
             </Link>
           </div>
         )}

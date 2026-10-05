@@ -52,7 +52,7 @@ export default async function HomePage() {
         .select("id", { count: "exact", head: true })
         .eq("shop_id", shop.id)
         .in("kind", ["sandbox_preset", "sandbox_freetext"]),
-      aiRepliesThisPeriod(supabase, shop.id, now),
+      aiRepliesThisPeriod(supabase, shop.id, now, shop),
       loadHomeStats(supabase, shop.id, now),
       supabase
         .from("conversations")
@@ -82,7 +82,7 @@ export default async function HomePage() {
 
   const plan = planOf(shop.plan);
   const limit = PLANS[plan].aiRepliesPerMonth;
-  const access = aiAccess({ plan: shop.plan, trialEndsAt: shop.trialEndsAt }, used, now);
+  const access = aiAccess(shop, used, now);
   const trialDays =
     plan === "trial" && shop.trialEndsAt
       ? Math.max(0, Math.ceil((new Date(shop.trialEndsAt).getTime() - now.getTime()) / 86_400_000))
@@ -118,7 +118,7 @@ export default async function HomePage() {
               {trialDays !== null && ` · ${trialDays === 0 ? "trial ended" : `${trialDays} day${trialDays === 1 ? "" : "s"} left in your trial`}`}
             </span>
             <span className="text-xs text-muted-foreground">
-              {limit === null ? `${used} AI replies this month` : `${used} of ${limit} AI replies used this month`}
+              {limit === null ? `${used} AI replies this period` : `${used} of ${limit} AI replies used this period`}
               {!access.allowed && ` · ${agent} is paused until you upgrade`}
             </span>
           </div>

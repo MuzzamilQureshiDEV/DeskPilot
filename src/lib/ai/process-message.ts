@@ -4,8 +4,8 @@ import { runAgent, type MessagesClient } from "@/lib/ai/agent";
 import { decideOutcome, type AutomationMode, type AutomationSetting } from "@/lib/ai/outcome";
 import type { Channel, HistoryMessage } from "@/lib/ai/prompts";
 import type { KnowledgeEntry } from "@/lib/ai/tools/types";
-import { aiAccess, PLANS, planOf } from "@/lib/billing/plans";
-import { aiRepliesThisPeriod } from "@/lib/billing/usage";
+import { PLANS, planOf } from "@/lib/billing/plans";
+import { loadAiAccess } from "@/lib/billing/usage";
 import { emailSendingEnabled } from "@/lib/email/outbound";
 import { loadKnowledge } from "@/lib/knowledge/load";
 import type { StoreProvider } from "@/lib/store/types";
@@ -32,7 +32,8 @@ export type SkipReason =
   | "already_answered"
   | "newer_message"
   | "usage_limit"
-  | "trial_ended";
+  | "trial_ended"
+  | "subscription_inactive";
 
 /** Everything the agent step needs, as plain JSON (Inngest memoises step results). */
 export type RunInput = {
@@ -55,7 +56,7 @@ export async function prepareRun(db: Db, ref: MessageRef, now: Date = new Date()
   const { shopId, conversationId, messageId } = ref;
 
   const [{ data: shop }, { data: conversation }, { data: message }] = await Promise.all([
-    db.from("shops").select("id, name, agent_name, agent_tone, plan, trial_ends_at").eq("id", shopId).maybeSingle(),
+    db.from("shops").select("id, name, agent_name, agent_tone, plan, trial_ends_at, subscription_status, current_period_start").eq("id", shopId).maybeSingle(),
     db
       .from("conversations")
       .select("id, channel, status, ai_paused, customer_id")
@@ -89,11 +90,13 @@ export async function prepareRun(db: Db, ref: MessageRef, now: Date = new Date()
   if (answered) return { skip: "already_answered" };
   if (newer && newer.length > 0) return { skip: "newer_message" };
 
-  const access = aiAccess(
-    { plan: shop.plan, trialEndsAt: shop.trial_ends_at },
-    await aiRepliesThisPeriod(db, shopId, now),
-    now,
-  );
+  const billing = {
+    plan: shop.plan,
+    trialEndsAt: shop.trial_ends_at,
+    subscriptionStatus: shop.subscription_status,
+    currentPeriodStart: shop.current_period_start,
+  };
+  const { access } = await loadAiAccess(db, shopId, billing, now);
   if (!access.allowed) return { skip: access.reason };
 
   const [{ data: rows }, { data: customer }, knowledge, { data: settingRows }] = await Promise.all([
