@@ -49,6 +49,7 @@ export type Database = {
           error: string | null
           executed_at: string | null
           id: string
+          options: Json
           payload: Json
           result: Json | null
           shop_id: string
@@ -64,6 +65,7 @@ export type Database = {
           error?: string | null
           executed_at?: string | null
           id?: string
+          options?: Json
           payload: Json
           result?: Json | null
           shop_id: string
@@ -79,6 +81,7 @@ export type Database = {
           error?: string | null
           executed_at?: string | null
           id?: string
+          options?: Json
           payload?: Json
           result?: Json | null
           shop_id?: string
@@ -527,6 +530,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_action_request: {
+        Args: { p_id: string; p_options: Json }
+        Returns: {
+          action_conversation_id: string
+          action_shop_id: string
+        }[]
+      }
       claim_sandbox_run: {
         Args: { p_free_text: boolean; p_shop_id: string }
         Returns: {
@@ -556,6 +566,13 @@ export type Database = {
           p_usage: Json
         }
         Returns: string
+      }
+      reject_action_request: {
+        Args: { p_id: string }
+        Returns: {
+          action_conversation_id: string
+          action_shop_id: string
+        }[]
       }
       release_sandbox_run: { Args: { p_event_id: number }; Returns: undefined }
       shopify_connection_status: {

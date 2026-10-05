@@ -16,3 +16,13 @@ export type MessageReceived = z.infer<typeof messageReceivedSchema>;
 export async function enqueueMessage(data: MessageReceived): Promise<void> {
   await inngest.send({ name: MESSAGE_RECEIVED, data: messageReceivedSchema.parse(data) });
 }
+
+/** A merchant approved an action request; run it in Shopify. */
+export const ACTION_APPROVED = "deskpilot/action.approved";
+
+export const actionApprovedSchema = z.object({ shopId: z.uuid(), actionId: z.uuid() });
+export type ActionApproved = z.infer<typeof actionApprovedSchema>;
+
+export async function enqueueAction(data: ActionApproved): Promise<void> {
+  await inngest.send({ name: ACTION_APPROVED, data: actionApprovedSchema.parse(data) });
+}

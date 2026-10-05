@@ -20,11 +20,13 @@ export const proposeAddressChange = defineTool({
             address1: { type: "string" },
             address2: { type: "string", description: "Apartment, suite, etc." },
             city: { type: "string" },
-            province: { type: "string", description: "State or province." },
+            province: { type: "string", description: "State or province name." },
+            province_code: { type: "string", description: "State/province code, e.g. \"CO\", \"CA\" or \"ON\". Omit if the country has none." },
             zip: { type: "string", description: "ZIP or postal code." },
-            country: { type: "string" },
+            country: { type: "string", description: "Country name." },
+            country_code: { type: "string", description: "2-letter ISO country code, e.g. \"US\", \"CA\", \"GB\"." },
           },
-          required: ["name", "address1", "city", "zip", "country"],
+          required: ["name", "address1", "city", "zip", "country", "country_code"],
           additionalProperties: false,
         },
         reason: { type: "string", description: "Short reason given by the customer." },
@@ -44,7 +46,7 @@ export const proposeAddressChange = defineTool({
       throw new ToolError("An address change for this order is already proposed in this conversation.");
     }
 
-    const { address2, province, ...required } = input.new_address;
+    const { address2, province, province_code, ...required } = input.new_address;
     ctx.proposals.push({
       type: "address_change",
       orderId: order.id,
@@ -56,6 +58,7 @@ export const proposeAddressChange = defineTool({
           ...required,
           ...(address2 ? { address2 } : {}),
           ...(province ? { province } : {}),
+          ...(province_code ? { province_code } : {}),
         },
         reason: input.reason,
       },

@@ -1,4 +1,4 @@
-import { ArrowLeft, Ban, Info, MapPin, ReceiptText, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Info, ShieldCheck } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -7,25 +7,18 @@ import { PageShell } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCurrentShop } from "@/lib/auth/session";
-import { summarizeAction, type ActionType } from "@/lib/inbox/action-summary";
+import { toCardData } from "@/lib/actions/card";
+import type { ActionType } from "@/lib/inbox/action-summary";
 import { asStatus, STATUS_LABEL, STATUS_VARIANT, timeAgo } from "@/lib/inbox/labels";
 import { idSchema, unansweredCustomerMessage } from "@/lib/inbox/mutations";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
+import { ActionCard } from "../../approvals/action-card";
 import { ConversationControls, DraftCard, ReplyComposer } from "./conversation-actions";
 
 export const metadata: Metadata = { title: "Conversation · DeskPilot" };
 
-const ACTION_ICON = { refund: ReceiptText, cancel: Ban, address_change: MapPin } as const;
-const ACTION_STATUS: Record<string, string> = {
-  pending: "Waiting for approval",
-  approved: "Approved",
-  rejected: "Rejected",
-  executing: "Running in Shopify",
-  executed: "Done",
-  failed: "Failed",
-};
 
 export default async function ConversationPage({ params }: PageProps<"/inbox/[id]">) {
   const { id } = await params;
@@ -51,7 +44,7 @@ export default async function ConversationPage({ params }: PageProps<"/inbox/[id
       .order("created_at", { ascending: true }),
     supabase
       .from("action_requests")
-      .select("id, type, status, payload, created_at")
+      .select("id, type, status, payload, result, error, decided_at, created_at")
       .eq("conversation_id", id)
       .eq("shop_id", shop.id)
       .order("created_at", { ascending: false }),
@@ -182,29 +175,10 @@ export default async function ConversationPage({ params }: PageProps<"/inbox/[id
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col gap-3">
-                {(actions ?? []).map((a) => {
-                  const s = summarizeAction(a.type as ActionType, a.payload);
-                  const Icon = ACTION_ICON[s.type];
-                  return (
-                    <div key={a.id} className="flex flex-col gap-1 rounded-lg border p-3 text-sm">
-                      <span className="flex items-center gap-2 font-medium">
-                        <Icon className="size-4 text-primary" aria-hidden />
-                        {s.title} · {s.orderNumber}
-                      </span>
-                      {s.details.map((d) => (
-                        <span key={d} className="text-xs text-muted-foreground">
-                          {d}
-                        </span>
-                      ))}
-                      <Badge variant={a.status === "pending" ? "default" : "outline"} className="mt-1 self-start">
-                        {ACTION_STATUS[a.status] ?? a.status}
-                      </Badge>
-                    </div>
-                  );
-                })}
-                <p className="text-xs text-muted-foreground">
-                  Nothing changes in Shopify until you approve. Approving from here arrives in the next update.
-                </p>
+                {(actions ?? []).map((a) => (
+                  <ActionCard key={a.id} compact action={toCardData({ ...a, type: a.type as ActionType })} />
+                ))}
+                <p className="text-xs text-muted-foreground">Nothing changes in Shopify until you approve.</p>
               </CardContent>
             </Card>
           )}

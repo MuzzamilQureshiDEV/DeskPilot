@@ -134,7 +134,7 @@ describe("propose_cancellation", () => {
 });
 
 describe("propose_address_change", () => {
-  const newAddress = { name: "Marcus Reid", address1: "9 Pine St", city: "Boulder", province: "CO", zip: "80302", country: "United States" };
+  const newAddress = { name: "Marcus Reid", address1: "9 Pine St", city: "Boulder", province: "CO", province_code: "co", zip: "80302", country: "United States", country_code: "us" };
 
   it("records old and new address for unshipped orders", async () => {
     const c = await verified(1002, "marcus.reid@example.com");

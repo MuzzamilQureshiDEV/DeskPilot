@@ -94,8 +94,12 @@ export const addressSchema = z.object({
   address2: z.string().trim().max(200).optional(),
   city: shortText(100),
   province: z.string().trim().max(100).optional(),
+  /** ISO 3166-2 subdivision code without the country prefix, e.g. "CO" or "ON". */
+  province_code: z.string().trim().toUpperCase().regex(/^[A-Z0-9]{1,3}$/, "Use a short state/province code like CO").optional(),
   zip: shortText(20),
   country: shortText(100),
+  /** ISO 3166-1 alpha-2, e.g. "US". Shopify needs codes to update the address. */
+  country_code: z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/, "Use a 2-letter country code like US"),
 });
 
 export const proposeAddressChangeSchema = z.object({
