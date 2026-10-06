@@ -1,8 +1,9 @@
-import { CheckCircle2, Clock, Lock, Mail, ShieldAlert } from "lucide-react";
+import { CheckCircle2, Clock, ExternalLink, Lock, Mail, MessageCircle, ShieldAlert } from "lucide-react";
 import type { Metadata } from "next";
 
 import { PageHeader, PageShell } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCurrentShop } from "@/lib/auth/session";
 import { shopAddress } from "@/lib/email/addresses";
@@ -46,7 +47,7 @@ export default async function SettingsPage() {
   const inboundBase = serverEnv().POSTMARK_INBOUND_ADDRESS;
   const sending = emailConfig();
 
-  const [{ data: row }, { data: filtered }, { data: privacy }] = shop
+  const [{ data: row }, { data: filtered }, { data: privacy }, { count: chats }, { data: store }] = shop
     ? await Promise.all([
         supabase.from("shops").select("inbound_hash, setup").eq("id", shop.id).single(),
         supabase
@@ -62,8 +63,15 @@ export default async function SettingsPage() {
           .eq("shop_id", shop.id)
           .order("created_at", { ascending: false })
           .limit(20),
+        supabase.from("conversations").select("id", { count: "exact", head: true }).eq("shop_id", shop.id).eq("channel", "chat"),
+        supabase.rpc("shopify_connection_status", { p_shop_id: shop.id }).maybeSingle(),
       ])
-    : [{ data: null }, { data: [] }, { data: [] }];
+    : [{ data: null }, { data: [] }, { data: [] }, { count: 0 }, { data: null }];
+  const apiKey = serverEnv().SHOPIFY_API_KEY;
+  const themeEditorUrl =
+    store?.domain && !store.uninstalled_at && apiKey
+      ? `https://${store.domain}/admin/themes/current/editor?context=apps&activateAppId=${apiKey}/chat`
+      : null;
 
   const setup = obj(row?.setup);
   const connected = setup.email_connected === true;
@@ -174,6 +182,35 @@ export default async function SettingsPage() {
                 {[...new Set((filtered ?? []).map((f) => FILTER_LABELS[f.reason ?? ""] ?? "other"))].join(", ")}.
               </p>
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex flex-wrap items-center gap-2">
+            <MessageCircle className="size-5 text-primary" aria-hidden />
+            Chat on your store
+            {(chats ?? 0) > 0 ? <Badge>Live</Badge> : <Badge variant="secondary">Not seen yet</Badge>}
+          </CardTitle>
+          <CardDescription>
+            A chat bubble on every page of your Shopify store. Shoppers&apos; messages arrive in your inbox, and {agent} replies
+            following your Automation settings.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4 text-sm">
+          <ol className="flex list-decimal flex-col gap-1 pl-5 text-muted-foreground">
+            <li>Open your theme editor with the button below (or Online Store, then Themes, then Customize, then App embeds).</li>
+            <li>Turn on <span className="font-medium text-foreground">DeskPilot chat</span> and pick your colour and greeting.</li>
+            <li>Click Save. The chat bubble appears on your store straight away.</li>
+          </ol>
+          {themeEditorUrl ? (
+            <a href={themeEditorUrl} target="_blank" rel="noopener noreferrer" className={buttonVariants({ className: "self-start" })}>
+              <ExternalLink aria-hidden />
+              Turn on chat in Shopify
+            </a>
+          ) : (
+            <p className="text-muted-foreground">Connect your Shopify store first (Store page).</p>
           )}
         </CardContent>
       </Card>

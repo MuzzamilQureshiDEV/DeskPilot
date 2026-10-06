@@ -30,6 +30,12 @@ api_version = "2026-10"
   compliance_topics = ["customers/data_request", "customers/redact", "shop/redact"]
   uri = "https://deskpilot-seven.vercel.app/api/shopify/webhooks"
 
+# Storefront chat: {shop}/apps/deskpilot/* → our /api/proxy/* (signed by Shopify).
+[app_proxy]
+url = "https://deskpilot-seven.vercel.app/api/proxy"
+subpath = "deskpilot"
+prefix = "apps"
+
 [pos]
 embedded = false
 

@@ -1,0 +1,39 @@
+{%- comment -%}
+  DeskPilot storefront chat (app embed). Talks to DeskPilot only through the
+  store's own app proxy (/apps/deskpilot), which Shopify signs.
+{%- endcomment -%}
+<div
+  id="deskpilot-chat"
+  class="dpc-root dpc-{{ block.settings.position | escape }}"
+  style="--dpc-accent: {{ block.settings.accent | escape }};"
+  data-endpoint="/apps/deskpilot/messages"
+  data-title="{{ block.settings.title | escape }}"
+  data-greeting="{{ block.settings.greeting | escape }}"
+  data-open-label="{{ 'chat.open' | t | escape }}"
+  data-close-label="{{ 'chat.close' | t | escape }}"
+  hidden
+></div>
+
+{% schema %}
+{
+  "name": "DeskPilot chat",
+  "target": "body",
+  "javascript": "deskpilot-chat.js",
+  "stylesheet": "deskpilot-chat.css",
+  "settings": [
+    { "type": "color", "id": "accent", "label": "Accent colour", "default": "#0f766e" },
+    { "type": "text", "id": "title", "label": "Chat title", "default": "Chat with us" },
+    { "type": "text", "id": "greeting", "label": "Greeting", "default": "Hi! How can we help?" },
+    {
+      "type": "select",
+      "id": "position",
+      "label": "Position",
+      "options": [
+        { "value": "right", "label": "Bottom right" },
+        { "value": "left", "label": "Bottom left" }
+      ],
+      "default": "right"
+    }
+  ]
+}
+{% endschema %}

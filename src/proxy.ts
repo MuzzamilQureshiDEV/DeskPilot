@@ -9,6 +9,6 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     // Skip static assets and webhook/background endpoints (no user session there).
-    "/((?!_next/static|_next/image|favicon.ico|api/inngest|api/shopify/webhooks|api/email/inbound|api/stripe/webhook|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/inngest|api/shopify/webhooks|api/email/inbound|api/stripe/webhook|api/proxy|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

@@ -143,7 +143,8 @@ export async function prepareRun(db: Db, ref: MessageRef, now: Date = new Date()
       knowledge,
       settings,
       autopilotAllowedByPlan: PLANS[planOf(shop.plan)].autopilot,
-      canSend: channel === "email" && emailSendingEnabled(),
+      // Chat "delivery" is the storefront widget showing sent replies; email needs a sender.
+      canSend: channel === "chat" || (channel === "email" && emailSendingEnabled()),
     },
   };
 }

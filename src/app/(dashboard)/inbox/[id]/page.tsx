@@ -83,6 +83,14 @@ export default async function ConversationPage({ params }: PageProps<"/inbox/[id
         </p>
       )}
 
+      {conv.channel === "chat" && (
+        <p className="flex items-start gap-2 rounded-lg border border-dashed px-3 py-2 text-sm text-muted-foreground">
+          <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
+          Chat from your store. Replies you send appear in the shopper&apos;s chat window within a few seconds. Order details are
+          only shared after the shopper gives their order number and checkout email.
+        </p>
+      )}
+
       {isEmail && !sending && (
         <p className="flex items-start gap-2 rounded-lg border border-dashed px-3 py-2 text-sm text-muted-foreground">
           <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
