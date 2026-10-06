@@ -43,3 +43,6 @@ next-env.d.ts
 
 # Shopify CLI local state
 .shopify/
+
+# Load test output (npm run test:load)
+load-report.json

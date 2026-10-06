@@ -6,6 +6,7 @@ import { claimAction, finishAction, markActionFailed, runAction, type Outcome } 
 import { ActionFailed } from "@/lib/shopify/mutations";
 import { getShopifyAccessToken, ShopifyNotConnected, ShopifyReauthRequired } from "@/lib/shopify/tokens";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { reportJobFailure } from "@/lib/observability/report";
 
 /**
  * Runs an APPROVED action request in Shopify (CLAUDE.md rule 2: only after a
@@ -20,8 +21,9 @@ export const executeAction = inngest.createFunction(
     triggers: [{ event: ACTION_APPROVED }],
     concurrency: [{ key: "event.data.actionId", limit: 1 }],
     retries: 3,
-    onFailure: async ({ event }) => {
+    onFailure: async ({ event, error }) => {
       const parsed = actionApprovedSchema.safeParse(event.data.event.data);
+      reportJobFailure("execute-action", error, parsed.success ? { shopId: parsed.data.shopId, actionId: parsed.data.actionId } : {});
       if (!parsed.success) return;
       await markActionFailed(
         createAdminClient(),

@@ -76,6 +76,7 @@ npm run test:ai        # LIVE agent tests on the real Claude API (costs money; n
 npm run dev:inngest    # Inngest dev server (needs INNGEST_DEV=1 in .env.local + npm run dev)
 npm run dev:message -- "text" [customer-email]   # simulate an inbound email for the demo shop (skips the webhook)
 npm run dev:email -- "text" [customer-email] [subject]   # post a Postmark payload to the local webhook (--auto-reply to test filters)
+npm run test:load        # load test: 100 shops x 10 emails through the pipeline (fake AI), cleans up; LOAD_SHOPS/LOAD_MESSAGES/LOAD_WORKERS
 npm run stripe:setup     # one-time, idempotent: Stripe products/prices (lookup keys), portal config, webhook endpoint
 npm run seed:admin     # dev test login (admin@deskpilot.test + demo shop); re-run resets password
                        # custom: npm run seed:admin -- <email> "<password>" "<shop name>"
@@ -460,6 +461,7 @@ POSTMARK_FROM_EMAIL=                      # verified Sender Signature; unset = d
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
 SENTRY_DSN=
+NEXT_PUBLIC_SENTRY_DSN=   # same DSN, browser errors
 ```
 
 Validated with Zod in `src/lib/env-schema.ts`. Server code reads `serverEnv()` from `src/lib/env.ts` (server-only); client-safe code reads `publicEnv()` from `src/lib/env-public.ts`. Later-phase keys are optional in the schema; make them required when their task lands.
@@ -506,17 +508,19 @@ Validated with Zod in `src/lib/env-schema.ts`. Server code reads `serverEnv()` f
 - [x] 3.5 Shopify `app/uninstalled` + GDPR webhooks (compliance URLs must be set in the app settings, see Decisions)
 - [x] 3.6 Escalations page, Approvals page, realtime inbox
 - [x] 3.7 Storefront chat widget (theme app extension)
-- [ ] 3.8 Sentry, retries, load test (100 shops x 10 messages)
+- [x] 3.8 Sentry, retries, load test (100 shops x 10 messages)
 - [ ] 3.9 Onboarding polish, landing page, privacy policy, terms
 - [ ] Deploy to Vercel (deferred from 1.1; do after 1.3)
 
 ### Before launch
 - [ ] Turn Supabase "Confirm email" back ON and set up custom SMTP (Postmark). The built-in sender allows only about 2 emails/hour. The code already handles confirmation (`/auth/confirm`, "check your email" state).
 - [ ] Supabase Auth URL config: production Site URL + redirect URLs.
+- [ ] Create a Sentry project and set `SENTRY_DSN` + `NEXT_PUBLIC_SENTRY_DSN` in Vercel (optional: `SENTRY_AUTH_TOKEN` for source maps).
 - [ ] Rotate the Supabase secret key and any Anthropic API keys (they were shared in a chat during setup).
 - [ ] Add a working `ANTHROPIC_API_KEY` with API credit, then run `npm run test:ai` (the agent hasn't been run against the live model yet).
 
 ### Decisions log
+- 2026-10-07 (3.8): **Sentry** (`@sentry/nextjs` 11) on server/edge (`src/instrumentation.ts`, `onRequestError`), in the browser (`src/instrumentation-client.ts`) and in `global-error.tsx`. It is off unless `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` are set. `sendDefaultPii: false`, and every event and breadcrumb goes through `scrubEvent` (`src/lib/observability/scrub.ts`): no request bodies, cookies or query values, only safe headers, user reduced to an id, and emails and secrets (Stripe/Shopify/Anthropic keys, JWTs, `v1.` tokens) masked. Inngest `onFailure` reports the final failure with ids only (`reportJobFailure`). There is no source-map upload (it needs a Sentry auth token; add later). **Retries:** Postmark 429/5xx and network failures are marked `transient`, and the autopilot `deliver` step throws `TransientDeliveryError` so Inngest retries it (`deliverMessage` never re-sends). A final delivery failure does not escalate the conversation (the reply exists; the UI offers Resend). **Load test** (`npm run test:load`, 100 shops × 10 emails, fake AI, 20 workers, run from a dev laptop against the cloud DB): about 7 msg/s ingest (p50 1.6 s, p95 1.9 s) and 6 msg/s processing (p50 1.0 s, p95 2.3 s). All 1000 replies had exactly one AI message and one usage event per customer message, with no cross-shop data. Each run hit one ~70 s network stall that affected under 1% of requests; production-style retries recovered all of them. Retries after a lost response hit the idempotent `already_answered` path (no duplicate reply or usage).
 - 2026-10-06 (3.7): The storefront chat is a theme app **embed** (`extensions/deskpilot-chat`, block handle `chat`). It is plain JS (about 9 KB), uses textContent only, and polls every 4 s while open and every 30 s while closed, with backoff. It talks only to `{shop}/apps/deskpilot/messages` through Shopify's **App Proxy** (`[app_proxy]` in `shopify.app.toml` → `/api/proxy/*`). Every request's `signature` (hex HMAC of the sorted params, repeated keys comma-joined) and `timestamp` (5 min) are verified before any DB work. There is no public CORS API. The visitor is a random token in localStorage; only `chat:<sha256>` is stored in `conversations.external_thread_id` (unique per shop). A shopper only ever sees their own messages and replies with status `sent` (never drafts, notes, reasoning or actions). Limits: 10 messages per visitor per 10 min, and 60 new chats per shop per hour. Chat follows the Automation settings like email (user decision): `canSend` is true for chat, so Autopilot categories reply instantly; others wait as drafts. An email typed in the widget links a customer but is never treated as verified.
 - 2026-10-06 (3.6): `conversations.escalation_reason` / `escalated_at` are written by `record_agent_result` when the outcome is escalated (fallback "Needs a person", max 500 characters) and by `markFailed`. They are kept as history afterwards. Realtime: `conversations`, `messages` and `action_requests` are in the `supabase_realtime` publication (never `shops`). RLS applies per subscriber, and a test shows another shop's user gets nothing even when filtering on a foreign shop_id. One `LiveRefresh` client component in the dashboard layout listens to the shop's changes and calls `router.refresh()` (debounced 700 ms), so server components stay the single source of data. It toasts new escalations and new approval requests. Sidebar badges count escalated conversations and pending approvals. DB tests must not compare this machine's clock with DB timestamps (about 1 s of skew was seen).
 - 2026-10-06 (3.5): All Shopify webhooks go to `/api/shopify/webhooks`: HMAC (base64 of the raw body, `verifyWebhookHmac`) is checked first, and a bad one returns 401. Dedupe on `X-Shopify-Webhook-Id` (`shopify_webhook_events`; the claim is released on failure so Shopify retries). `app/uninstalled` is subscribed per store from code after OAuth (`registerUninstallWebhook`, input field `uri` in 2026-10). It wipes the tokens but keeps `shopify_domain` and sets `shopify_uninstalled_at`; billing is untouched. The 3 compliance webhooks are set in the app's settings (same URL). `customers/redact` deletes the customer's conversations (cascade), customer rows, filtered emails and actions for `orders_to_redact`, and the log keeps counts only, with no email. `customers/data_request` is logged in `privacy_requests`; the merchant downloads a JSON export built on demand via RLS (`/api/privacy/export/[id]`) and marks it sent. `shop/redact` runs only if the store is still uninstalled: it deletes all customer data and clears the domain, but keeps the merchant's account, settings, knowledge and billing.

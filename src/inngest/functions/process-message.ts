@@ -5,7 +5,8 @@ import { inngest } from "@/inngest/client";
 import { MESSAGE_RECEIVED, messageReceivedSchema } from "@/inngest/events";
 import { agentClient } from "@/lib/ai/client";
 import { markFailed, prepareRun, runAndDecide, saveResult } from "@/lib/ai/process-message";
-import { deliverMessage } from "@/lib/email/outbound";
+import { deliverMessage, TransientDeliveryError } from "@/lib/email/outbound";
+import { reportJobFailure } from "@/lib/observability/report";
 import { storeProviderForShop } from "@/lib/store/provider";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -27,7 +28,10 @@ export const processMessage = inngest.createFunction(
     retries: 3,
     onFailure: async ({ event, error }) => {
       const parsed = messageReceivedSchema.safeParse(event.data.event.data);
+      reportJobFailure("process-message", error, parsed.success ? { shopId: parsed.data.shopId, messageId: parsed.data.messageId } : {});
       if (!parsed.success) return;
+      // The reply was saved; only emailing it failed. It shows "Not emailed" with a Resend button.
+      if (error.message.startsWith("Email delivery failed")) return;
       const reason = error.message.startsWith("AI request rejected") ? "the AI service rejected the request" : "an error";
       await markFailed(createAdminClient(), parsed.data, reason);
     },
@@ -60,7 +64,12 @@ export const processMessage = inngest.createFunction(
     // Autopilot: email the reply. deliverMessage skips already-delivered messages, so a retry never re-sends.
     const delivery =
       result.reply.status === "sent"
-        ? await step.run("deliver", () => deliverMessage(createAdminClient(), ref.shopId, aiMessageId))
+        ? await step.run("deliver", async () => {
+            const res = await deliverMessage(createAdminClient(), ref.shopId, aiMessageId);
+            // A temporary Postmark/network problem: let Inngest retry this step (it never re-sends a delivered reply).
+            if (res.status === "failed" && res.transient) throw new TransientDeliveryError(res.error);
+            return res;
+          })
         : null;
 
     return {

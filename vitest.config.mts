@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => ({
     environment: "node",
     include: ["src/**/*.test.ts", "tests/**/*.test.ts"],
     // Live model tests cost money: only via `npm run test:ai` (vitest.live.config.mts).
-    exclude: ["**/*.live.test.ts", "**/node_modules/**"],
+    exclude: ["**/*.live.test.ts", "**/*.load.test.ts", "**/node_modules/**"],
     // Load .env.local etc. (all keys, not just VITE_*) for DB integration tests.
     env: loadEnv(mode, process.cwd(), ""),
     // DB tests hit the cloud dev project over the network.

@@ -13,6 +13,7 @@
     "test:db": "vitest run tests/db",
     "seed:admin": "node --env-file=.env.local scripts/seed-admin.mts",
     "test:ai": "vitest run --config vitest.live.config.mts tests/ai",
+    "test:load": "vitest run --config vitest.load.config.mts",
     "test:shopify": "vitest run --config vitest.live.config.mts tests/shopify",
     "dev:inngest": "npx --yes --ignore-scripts=false inngest-cli@latest dev -u http://localhost:3000/api/inngest",
     "dev:message": "node --env-file=.env.local scripts/simulate-message.mts",
@@ -22,6 +23,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",
     "@base-ui/react": "^1.8.0",
+    "@sentry/nextjs": "^11.4.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.2",
     "class-variance-authority": "^0.7.1",

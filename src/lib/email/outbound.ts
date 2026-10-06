@@ -57,7 +57,7 @@ export async function sendEmail(
   email: OutgoingEmail,
   config: EmailConfig,
   fetchFn: typeof fetch = fetch,
-): Promise<{ ok: true; providerId: string } | { ok: false; error: string }> {
+): Promise<{ ok: true; providerId: string } | { ok: false; error: string; transient?: true }> {
   try {
     const res = await fetchFn(POSTMARK_URL, {
       method: "POST",
@@ -65,10 +65,14 @@ export async function sendEmail(
       body: JSON.stringify(postmarkBody(email, config.from)),
     });
     const json = (await res.json().catch(() => ({}))) as { ErrorCode?: number; Message?: string; MessageID?: string };
-    if (!res.ok || (json.ErrorCode ?? 0) !== 0) return { ok: false, error: json.Message ?? `Postmark error ${res.status}` };
+    if (!res.ok || (json.ErrorCode ?? 0) !== 0) {
+      const error = json.Message ?? `Postmark error ${res.status}`;
+      // Rate limits and server errors may pass; a rejected recipient won't.
+      return res.status === 429 || res.status >= 500 ? { ok: false, error, transient: true } : { ok: false, error };
+    }
     return { ok: true, providerId: json.MessageID ?? "" };
   } catch {
-    return { ok: false, error: "Couldn't reach the email service." };
+    return { ok: false, error: "Couldn't reach the email service.", transient: true };
   }
 }
 
@@ -76,7 +80,15 @@ export type DeliveryResult =
   | { status: "delivered" }
   | { status: "dev_outbox" }
   | { status: "not_email" }
-  | { status: "failed"; error: string };
+  | { status: "failed"; error: string; transient?: true };
+
+/** Thrown by the background job so Inngest retries a temporary email failure. */
+export class TransientDeliveryError extends Error {
+  constructor(message: string) {
+    super(`Email delivery failed: ${message}`);
+    this.name = "TransientDeliveryError";
+  }
+}
 
 /**
  * Emails a sent reply (AI or human) to the customer, once. Skips messages
@@ -137,7 +149,7 @@ export async function deliverMessage(
   );
   if (!sent.ok) {
     await db.from("messages").update({ delivery_error: sent.error.slice(0, 500) }).eq("id", msg.id).eq("shop_id", shopId);
-    return { status: "failed", error: sent.error };
+    return sent.transient ? { status: "failed", error: sent.error, transient: true } : { status: "failed", error: sent.error };
   }
   await db
     .from("messages")

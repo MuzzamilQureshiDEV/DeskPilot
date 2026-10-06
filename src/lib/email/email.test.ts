@@ -144,6 +144,8 @@ describe("outbound", () => {
     const down = vi.fn(async () => {
       throw new Error("network");
     });
-    expect(await sendEmail(email, config, down)).toEqual({ ok: false, error: "Couldn't reach the email service." });
+    expect(await sendEmail(email, config, down)).toEqual({ ok: false, error: "Couldn't reach the email service.", transient: true });
+    const busy = vi.fn(async () => new Response(JSON.stringify({ ErrorCode: 100, Message: "Maintenance" }), { status: 503 }));
+    expect(await sendEmail(email, config, busy)).toEqual({ ok: false, error: "Maintenance", transient: true });
   });
 });
