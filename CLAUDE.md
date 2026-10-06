@@ -510,7 +510,7 @@ Validated with Zod in `src/lib/env-schema.ts`. Server code reads `serverEnv()` f
 - [x] 3.7 Storefront chat widget (theme app extension)
 - [x] 3.8 Sentry, retries, load test (100 shops x 10 messages)
 - [x] 3.9 Onboarding polish, landing page, privacy policy, terms
-- [ ] Deploy to Vercel (deferred from 1.1; do after 1.3)
+- [x] Deploy to Vercel (live at deskpilot-seven.vercel.app)
 
 ### Before launch
 - [ ] Turn Supabase "Confirm email" back ON and set up custom SMTP (Postmark). The built-in sender allows only about 2 emails/hour. The code already handles confirmation (`/auth/confirm`, "check your email" state).
