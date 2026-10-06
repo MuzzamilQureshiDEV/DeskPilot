@@ -20,10 +20,8 @@ redirect_urls = [
 [webhooks]
 api_version = "2026-10"
 
-  # Every store, including new installs (also registered per store after OAuth).
-  [[webhooks.subscriptions]]
-  topics = ["app/uninstalled"]
-  uri = "https://deskpilot-seven.vercel.app/api/shopify/webhooks"
+  # app/uninstalled is registered per store after OAuth (registerUninstallWebhook):
+  # app-specific subscriptions aren't allowed with use_legacy_install_flow.
 
   # Mandatory privacy (GDPR) webhooks.
   [[webhooks.subscriptions]]
