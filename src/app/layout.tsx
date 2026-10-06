@@ -16,7 +16,13 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "DeskPilot",
-  description: "AI support agent for Shopify stores",
+  description: "AI customer support for Shopify stores: answers from real store data, money actions only with your approval.",
+  applicationName: "DeskPilot",
+  openGraph: {
+    title: "DeskPilot · AI customer support for Shopify stores",
+    description: "Answers order, shipping and product questions from your real Shopify data, and never moves money without your approval.",
+    type: "website",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

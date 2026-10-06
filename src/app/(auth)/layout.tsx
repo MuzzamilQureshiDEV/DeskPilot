@@ -7,6 +7,14 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
         DeskPilot
       </Link>
       <div className="w-full max-w-sm">{children}</div>
+      <nav aria-label="Legal" className="flex gap-4 text-xs text-muted-foreground">
+        <Link href="/privacy" className="hover:text-foreground">
+          Privacy
+        </Link>
+        <Link href="/terms" className="hover:text-foreground">
+          Terms
+        </Link>
+      </nav>
     </main>
   );
 }

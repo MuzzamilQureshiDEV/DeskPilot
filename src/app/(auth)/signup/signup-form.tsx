@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 
 import { signUp } from "@/app/(auth)/actions";
@@ -48,6 +49,17 @@ export function SignupForm({ next, defaultShopName }: { next?: string; defaultSh
       <Button type="submit" size="lg" disabled={pending}>
         {pending ? "Creating account…" : "Create account"}
       </Button>
+      <p className="text-center text-xs text-muted-foreground">
+        By creating an account you agree to our{" "}
+        <Link href="/terms" className="underline underline-offset-2 hover:text-foreground">
+          Terms of Service
+        </Link>{" "}
+        and{" "}
+        <Link href="/privacy" className="underline underline-offset-2 hover:text-foreground">
+          Privacy Policy
+        </Link>
+        .
+      </p>
     </form>
   );
 }
