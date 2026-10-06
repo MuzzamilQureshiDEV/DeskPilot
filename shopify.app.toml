@@ -1,0 +1,37 @@
+# Shopify app configuration (deployed with `npx.cmd @shopify/cli@latest app deploy`).
+# Mirrors the Dev Dashboard settings of version deskpilot-1, plus webhooks.
+# client_id is public (it appears in every install URL); the secret is never here.
+
+client_id = "c16baae7d25b862c36fa9523b82bb309"
+name = "DeskPilot"
+application_url = "https://deskpilot-seven.vercel.app/api/shopify/install"
+embedded = false
+
+[access_scopes]
+scopes = "read_orders,write_orders,read_products,read_customers,read_fulfillments,read_merchant_managed_fulfillment_orders"
+use_legacy_install_flow = true
+
+[auth]
+redirect_urls = [
+  "https://deskpilot-seven.vercel.app/api/shopify/callback",
+  "http://localhost:3000/api/shopify/callback",
+]
+
+[webhooks]
+api_version = "2026-10"
+
+  # Every store, including new installs (also registered per store after OAuth).
+  [[webhooks.subscriptions]]
+  topics = ["app/uninstalled"]
+  uri = "https://deskpilot-seven.vercel.app/api/shopify/webhooks"
+
+  # Mandatory privacy (GDPR) webhooks.
+  [[webhooks.subscriptions]]
+  compliance_topics = ["customers/data_request", "customers/redact", "shop/redact"]
+  uri = "https://deskpilot-seven.vercel.app/api/shopify/webhooks"
+
+[pos]
+embedded = false
+
+[build]
+include_config_on_deploy = true
