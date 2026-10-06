@@ -11,6 +11,7 @@ import {
   shopifyAppConfig,
   verifyShopifyHmac,
 } from "@/lib/shopify/oauth";
+import { registerUninstallWebhook } from "@/lib/shopify/register";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -98,9 +99,17 @@ export async function GET(req: NextRequest) {
       shopify_refresh_expires_at: tokens.refreshExpiresAt.toISOString(),
       shopify_scopes: tokens.scopes.join(","),
       shopify_connected_at: new Date().toISOString(),
+      shopify_uninstalled_at: null,
     })
     .eq("id", shopId);
   if (error) return fail(req, error.code === "23505" ? "domain_taken" : "failed");
+
+  // So an uninstall in Shopify disconnects the store here. Never blocks connecting.
+  try {
+    await registerUninstallWebhook({ domain, accessToken: tokens.accessToken }, cfg.appUrl);
+  } catch {
+    console.error("shopify callback: webhook registration failed", shopId);
+  }
 
   return finish(req, "connected=1");
 }

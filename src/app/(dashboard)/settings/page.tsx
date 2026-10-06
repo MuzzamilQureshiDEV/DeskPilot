@@ -1,4 +1,4 @@
-import { CheckCircle2, Clock, Mail, ShieldAlert } from "lucide-react";
+import { CheckCircle2, Clock, Lock, Mail, ShieldAlert } from "lucide-react";
 import type { Metadata } from "next";
 
 import { PageHeader, PageShell } from "@/components/dashboard/page-header";
@@ -13,6 +13,7 @@ import { createClient } from "@/lib/supabase/server";
 
 import { AgentForm } from "./agent-form";
 import { CopyAddress, TestEmailButton } from "./email-card";
+import { DataRequestActions } from "./privacy-card";
 
 export const metadata: Metadata = { title: "Settings · DeskPilot" };
 
@@ -26,6 +27,14 @@ const FILTER_LABELS: Record<string, string> = {
   forwarding_confirmation: "forwarding confirmation",
 };
 
+const PRIVACY_LABELS: Record<string, string> = {
+  data_request: "Data request",
+  customer_redact: "Customer data deleted",
+  shop_redact: "Store data deleted",
+};
+
+const dateFormat = new Intl.DateTimeFormat("en", { dateStyle: "medium" });
+
 const daysAgo = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString();
 
 const obj = (v: unknown): Record<string, unknown> => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
@@ -37,7 +46,7 @@ export default async function SettingsPage() {
   const inboundBase = serverEnv().POSTMARK_INBOUND_ADDRESS;
   const sending = emailConfig();
 
-  const [{ data: row }, { data: filtered }] = shop
+  const [{ data: row }, { data: filtered }, { data: privacy }] = shop
     ? await Promise.all([
         supabase.from("shops").select("inbound_hash, setup").eq("id", shop.id).single(),
         supabase
@@ -47,8 +56,14 @@ export default async function SettingsPage() {
           .gte("created_at", daysAgo(30))
           .order("created_at", { ascending: false })
           .limit(50),
+        supabase
+          .from("privacy_requests")
+          .select("id, kind, customer_email, shopify_customer_id, status, created_at")
+          .eq("shop_id", shop.id)
+          .order("created_at", { ascending: false })
+          .limit(20),
       ])
-    : [{ data: null }, { data: [] }];
+    : [{ data: null }, { data: [] }, { data: [] }];
 
   const setup = obj(row?.setup);
   const connected = setup.email_connected === true;
@@ -159,6 +174,41 @@ export default async function SettingsPage() {
                 {[...new Set((filtered ?? []).map((f) => FILTER_LABELS[f.reason ?? ""] ?? "other"))].join(", ")}.
               </p>
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Lock className="size-5 text-primary" aria-hidden />
+            Privacy requests
+          </CardTitle>
+          <CardDescription>
+            When a customer asks your store what data it holds, Shopify forwards the request here. Download the data and send it
+            to the customer. Deletion requests are handled automatically.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {(privacy ?? []).length === 0 ? (
+            <p className="text-sm text-muted-foreground">No privacy requests yet.</p>
+          ) : (
+            <ul className="flex flex-col divide-y text-sm">
+              {(privacy ?? []).map((r) => (
+                <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                  <span>
+                    <span className="font-medium">{PRIVACY_LABELS[r.kind] ?? r.kind}</span>
+                    {r.customer_email ? ` · ${r.customer_email}` : r.shopify_customer_id ? ` · customer ${r.shopify_customer_id}` : ""}
+                    <span className="text-muted-foreground"> · {dateFormat.format(new Date(r.created_at))}</span>
+                  </span>
+                  {r.kind === "data_request" && r.status === "received" ? (
+                    <DataRequestActions id={r.id} />
+                  ) : (
+                    <Badge variant="secondary">{r.status === "no_data" ? "No data held" : r.kind === "data_request" ? "Sent" : "Deleted"}</Badge>
+                  )}
+                </li>
+              ))}
+            </ul>
           )}
         </CardContent>
       </Card>

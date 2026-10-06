@@ -90,7 +90,13 @@ export default async function StorePage({ searchParams }: PageProps<"/store">) {
             <CardTitle className="flex items-center gap-2">
               <Store className="size-5 text-primary" aria-hidden />
               {status.domain}
-              {status.needs_reconnect ? <Badge variant="destructive">Needs reconnecting</Badge> : <Badge>Connected</Badge>}
+              {status.uninstalled_at ? (
+                <Badge variant="destructive">Uninstalled in Shopify</Badge>
+              ) : status.needs_reconnect ? (
+                <Badge variant="destructive">Needs reconnecting</Badge>
+              ) : (
+                <Badge>Connected</Badge>
+              )}
             </CardTitle>
             {status.connected_at && (
               <CardDescription>Connected {dateFormat.format(new Date(status.connected_at))}</CardDescription>
@@ -101,7 +107,9 @@ export default async function StorePage({ searchParams }: PageProps<"/store">) {
               <div className="flex flex-col gap-3 rounded-lg border border-destructive/30 p-4">
                 <p className="flex items-center gap-2 text-sm">
                   <TriangleAlert className="size-4 text-destructive" aria-hidden />
-                  Shopify access expired. Reconnect so {agent} can see live orders again.
+                  {status.uninstalled_at
+                    ? `DeskPilot was uninstalled from this store in Shopify on ${dateFormat.format(new Date(status.uninstalled_at))}. Reconnect so ${agent} can see orders again. Customer data from this store is deleted 48 hours after uninstalling unless you reconnect.`
+                    : `Shopify access expired. Reconnect so ${agent} can see live orders again.`}
                 </p>
                 {configured && <ConnectForm defaultDomain={status.domain} label="Reconnect" />}
               </div>

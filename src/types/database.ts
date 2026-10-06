@@ -404,6 +404,53 @@ export type Database = {
           },
         ]
       }
+      privacy_requests: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          customer_email: string | null
+          detail: Json
+          id: string
+          kind: string
+          shop_domain: string
+          shop_id: string | null
+          shopify_customer_id: string | null
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          customer_email?: string | null
+          detail?: Json
+          id?: string
+          kind: string
+          shop_domain: string
+          shop_id?: string | null
+          shopify_customer_id?: string | null
+          status?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          customer_email?: string | null
+          detail?: Json
+          id?: string
+          kind?: string
+          shop_domain?: string
+          shop_id?: string | null
+          shopify_customer_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "privacy_requests_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shop_members: {
         Row: {
           role: string
@@ -430,6 +477,27 @@ export type Database = {
           },
         ]
       }
+      shopify_webhook_events: {
+        Row: {
+          received_at: string
+          shop_domain: string | null
+          topic: string
+          webhook_id: string
+        }
+        Insert: {
+          received_at?: string
+          shop_domain?: string | null
+          topic: string
+          webhook_id: string
+        }
+        Update: {
+          received_at?: string
+          shop_domain?: string | null
+          topic?: string
+          webhook_id?: string
+        }
+        Relationships: []
+      }
       shops: {
         Row: {
           agent_name: string
@@ -451,6 +519,7 @@ export type Database = {
           shopify_scopes: string | null
           shopify_token_enc: string | null
           shopify_token_expires_at: string | null
+          shopify_uninstalled_at: string | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           subscription_status: string | null
@@ -477,6 +546,7 @@ export type Database = {
           shopify_scopes?: string | null
           shopify_token_enc?: string | null
           shopify_token_expires_at?: string | null
+          shopify_uninstalled_at?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: string | null
@@ -503,6 +573,7 @@ export type Database = {
           shopify_scopes?: string | null
           shopify_token_enc?: string | null
           shopify_token_expires_at?: string | null
+          shopify_uninstalled_at?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: string | null
@@ -589,6 +660,7 @@ export type Database = {
           remaining: number
         }[]
       }
+      complete_privacy_request: { Args: { p_id: string }; Returns: undefined }
       disconnect_shopify: { Args: { p_shop_id: string }; Returns: undefined }
       finish_sandbox_run: {
         Args: {
@@ -631,6 +703,7 @@ export type Database = {
           domain: string
           needs_reconnect: boolean
           scopes: string
+          uninstalled_at: string
         }[]
       }
     }

@@ -70,6 +70,13 @@ export function verifyShopifyHmac(params: URLSearchParams, secret: string): bool
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
+/** Verifies a webhook: `X-Shopify-Hmac-Sha256` is the base64 HMAC-SHA256 of the raw body. */
+export function verifyWebhookHmac(rawBody: string, hmacHeader: string | null, secret: string): boolean {
+  if (!hmacHeader || !secret) return false;
+  const expected = createHmac("sha256", secret).update(rawBody, "utf8").digest("base64");
+  return safeEqual(expected, hmacHeader.trim());
+}
+
 /** Constant-time string comparison (for OAuth state). */
 export function safeEqual(a: string, b: string): boolean {
   const x = Buffer.from(a);
