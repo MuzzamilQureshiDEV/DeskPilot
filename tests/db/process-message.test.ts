@@ -179,9 +179,12 @@ describe.skipIf(!hasDbEnv)("process-message pipeline (live DB, fake model)", () 
     expect((await prepareRun(admin, human)).skip).toBe("handled_by_human");
 
     const older = await newConversation("First message");
+    // Base "later" on the database's own timestamp (this machine's clock may differ).
+    const { data: first } = await admin.from("messages").select("created_at").eq("id", older.messageId).single();
+    const later = new Date(new Date(first!.created_at!).getTime() + 1000).toISOString();
     await admin
       .from("messages")
-      .insert({ shop_id: shopId, conversation_id: older.conversationId, role: "customer", status: "received", body: "Second message", created_at: new Date(Date.now() + 1000).toISOString() });
+      .insert({ shop_id: shopId, conversation_id: older.conversationId, role: "customer", status: "received", body: "Second message", created_at: later });
     expect((await prepareRun(admin, older)).skip).toBe("newer_message");
   });
 

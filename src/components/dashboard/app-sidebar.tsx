@@ -36,6 +36,8 @@ type AppSidebarProps = {
   email: string;
   /** False shows a dot on Store until Shopify is connected. */
   storeConnected: boolean;
+  /** Items waiting for a person, shown as counts next to the nav items. */
+  counts?: { escalations: number; approvals: number };
 };
 
 function initials(name: string): string {
@@ -47,7 +49,7 @@ function initials(name: string): string {
   return letters.join("") || "?";
 }
 
-export function AppSidebar({ shopName, email, storeConnected }: AppSidebarProps) {
+export function AppSidebar({ shopName, email, storeConnected, counts }: AppSidebarProps) {
   const pathname = usePathname();
   const active = activeNavItem(pathname);
   const { isMobile, setOpenMobile } = useSidebar();
@@ -101,6 +103,17 @@ export function AppSidebar({ shopName, email, storeConnected }: AppSidebarProps)
                       >
                         <item.icon aria-hidden />
                         <span>{item.title}</span>
+                        {(() => {
+                          const n = item.href === "/escalations" ? counts?.escalations : item.href === "/approvals" ? counts?.approvals : 0;
+                          return n ? (
+                            <span
+                              className="ml-auto rounded-full bg-destructive px-1.5 text-xs font-medium text-white tabular-nums"
+                              aria-label={`${n} waiting`}
+                            >
+                              {n > 99 ? "99+" : n}
+                            </span>
+                          ) : null;
+                        })()}
                         {item.href === "/store" && !storeConnected && (
                           <span className="ml-auto size-2 shrink-0 rounded-full bg-primary" aria-label="Not connected yet" />
                         )}

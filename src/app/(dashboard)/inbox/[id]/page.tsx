@@ -1,4 +1,4 @@
-import { ArrowLeft, Info, MailCheck, MailX, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Info, MailCheck, MailX, ShieldCheck, TriangleAlert } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -30,7 +30,7 @@ export default async function ConversationPage({ params }: PageProps<"/inbox/[id
 
   const { data: conv } = await supabase
     .from("conversations")
-    .select("id, channel, subject, status, sentiment, tags, ai_paused, created_at, customers(name, email)")
+    .select("id, channel, subject, status, sentiment, tags, ai_paused, escalation_reason, created_at, customers(name, email)")
     .eq("id", id)
     .eq("shop_id", shop.id)
     .maybeSingle();
@@ -72,6 +72,16 @@ export default async function ConversationPage({ params }: PageProps<"/inbox/[id
           <Badge variant={STATUS_VARIANT[status]}>{STATUS_LABEL[status]}</Badge>
         </div>
       </div>
+
+      {status === "escalated" && (
+        <p role="status" className="flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm">
+          <TriangleAlert className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
+          <span>
+            <span className="font-medium">{agent} escalated this to you: </span>
+            {conv.escalation_reason || "it needs a person."}
+          </span>
+        </p>
+      )}
 
       {isEmail && !sending && (
         <p className="flex items-start gap-2 rounded-lg border border-dashed px-3 py-2 text-sm text-muted-foreground">

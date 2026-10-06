@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { getCurrentShop, requireUser } from "@/lib/auth/session";
+import { LiveRefresh } from "@/components/dashboard/live-refresh";
 import { loadAiAccess } from "@/lib/billing/usage";
 import { createClient } from "@/lib/supabase/server";
 
@@ -20,6 +21,12 @@ export default async function DashboardLayout({ children }: LayoutProps<"/">) {
     ? await supabase.rpc("shopify_connection_status", { p_shop_id: shop.id }).maybeSingle()
     : { data: null };
   const storeConnected = !!connection?.domain && !connection.needs_reconnect;
+  const [{ count: escalations }, { count: approvals }] = shop
+    ? await Promise.all([
+        supabase.from("conversations").select("id", { count: "exact", head: true }).eq("shop_id", shop.id).eq("status", "escalated"),
+        supabase.from("action_requests").select("id", { count: "exact", head: true }).eq("shop_id", shop.id).eq("status", "pending"),
+      ])
+    : [{ count: 0 }, { count: 0 }];
   // Rule 7: over the limit (or trial ended), messages still arrive but the AI stops.
   const access = shop ? (await loadAiAccess(supabase, shop.id, shop, new Date())).access : null;
   const pastDue = shop?.subscriptionStatus === "past_due";
@@ -28,7 +35,13 @@ export default async function DashboardLayout({ children }: LayoutProps<"/">) {
 
   return (
     <SidebarProvider defaultOpen={sidebarOpen}>
-      <AppSidebar shopName={shop?.name ?? null} email={user.email} storeConnected={storeConnected} />
+      <AppSidebar
+        shopName={shop?.name ?? null}
+        email={user.email}
+        storeConnected={storeConnected}
+        counts={{ escalations: escalations ?? 0, approvals: approvals ?? 0 }}
+      />
+      {shop && <LiveRefresh shopId={shop.id} />}
       <SidebarInset>
         <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
           <SidebarTrigger className="-ml-1" />

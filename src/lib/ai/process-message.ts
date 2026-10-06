@@ -151,7 +151,7 @@ export async function prepareRun(db: Db, ref: MessageRef, now: Date = new Date()
 /** What gets saved for one run (plain JSON for the record_agent_result RPC). */
 export type SaveData = {
   reply: { status: "draft" | "sent"; body: string; confidence: number; reasoning: string };
-  conversation: { status: string; sentiment: string; tags: string[] };
+  conversation: { status: string; sentiment: string; tags: string[]; escalation_reason: string | null };
   actions: { type: string; payload: Json; ai_reasoning: string }[];
   usage: { model: string; input_tokens: number; output_tokens: number };
   /** For logs only. */
@@ -183,7 +183,12 @@ export async function runAndDecide(
 
   return {
     reply: { status: outcome.messageStatus, body: r.reply, confidence: r.confidence, reasoning: r.reasoning },
-    conversation: { status: outcome.conversationStatus, sentiment: r.sentiment, tags: r.tags },
+    conversation: {
+      status: outcome.conversationStatus,
+      sentiment: r.sentiment,
+      tags: r.tags,
+      escalation_reason: outcome.conversationStatus === "escalated" ? (r.escalate_reason ?? null) : null,
+    },
     actions: outcome.createActionRequests
       ? result.proposals.map((p) => ({ type: p.type, payload: p.payload, ai_reasoning: r.reasoning }))
       : [],
@@ -214,7 +219,11 @@ export async function markFailed(db: Db, ref: MessageRef, reason: string): Promi
   );
   await db
     .from("conversations")
-    .update({ status: "escalated" })
+    .update({
+      status: "escalated",
+      escalation_reason: `The AI couldn't reply automatically (${reason}).`,
+      escalated_at: new Date().toISOString(),
+    })
     .eq("id", ref.conversationId)
     .eq("shop_id", ref.shopId)
     .eq("status", "open");

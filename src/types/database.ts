@@ -140,6 +140,8 @@ export type Database = {
           channel: Database["public"]["Enums"]["channel"]
           created_at: string | null
           customer_id: string | null
+          escalated_at: string | null
+          escalation_reason: string | null
           external_thread_id: string | null
           id: string
           last_message_at: string | null
@@ -155,6 +157,8 @@ export type Database = {
           channel: Database["public"]["Enums"]["channel"]
           created_at?: string | null
           customer_id?: string | null
+          escalated_at?: string | null
+          escalation_reason?: string | null
           external_thread_id?: string | null
           id?: string
           last_message_at?: string | null
@@ -170,6 +174,8 @@ export type Database = {
           channel?: Database["public"]["Enums"]["channel"]
           created_at?: string | null
           customer_id?: string | null
+          escalated_at?: string | null
+          escalation_reason?: string | null
           external_thread_id?: string | null
           id?: string
           last_message_at?: string | null
