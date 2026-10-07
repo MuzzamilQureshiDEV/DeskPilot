@@ -19,7 +19,7 @@ import Link from "next/link";
 import { Greeting } from "@/components/dashboard/greeting";
 import { EmptyState, PageShell } from "@/components/dashboard/page-header";
 import { Sparkline } from "@/components/dashboard/sparkline";
-import { Badge } from "@/components/ui/badge";
+import { Avatar, StatusPill } from "@/components/dashboard/status-pill";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCurrentShop } from "@/lib/auth/session";
@@ -27,7 +27,7 @@ import { aiAccess, PLANS, planOf } from "@/lib/billing/plans";
 import { aiRepliesThisPeriod } from "@/lib/billing/usage";
 import { buildChecklist, checklistProgress } from "@/lib/home/checklist";
 import { loadHomeStats, loadTrends, STATS_WINDOW_DAYS, TREND_DAYS } from "@/lib/home/stats";
-import { asStatus, NEEDS_ATTENTION, STATUS_LABEL, STATUS_VARIANT, timeAgo } from "@/lib/inbox/labels";
+import { asStatus, NEEDS_ATTENTION, timeAgo } from "@/lib/inbox/labels";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
@@ -261,16 +261,14 @@ export default async function HomePage() {
                   return (
                     <li key={c.id}>
                       <Link href={`/inbox/${c.id}`} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50">
-                        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
-                          {who.slice(0, 1).toUpperCase()}
-                        </span>
+                        <Avatar name={who} />
                         <span className="flex min-w-0 flex-1 flex-col">
                           <span className="truncate text-sm font-medium">{c.subject ?? "(no subject)"}</span>
                           <span className="truncate text-xs text-muted-foreground">
                             {who} · {timeAgo(c.last_message_at, now)}
                           </span>
                         </span>
-                        <Badge variant={STATUS_VARIANT[status]}>{STATUS_LABEL[status]}</Badge>
+                        <StatusPill status={status} />
                       </Link>
                     </li>
                   );
