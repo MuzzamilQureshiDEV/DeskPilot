@@ -130,12 +130,14 @@ export async function postChat(db: Db, shopId: string, post: ChatPost, deps: Cha
   if (msgError) throw new Error("Could not save chat message");
 
   const status = conv.ai_paused ? "human" : conv.status === "awaiting_approval" ? "awaiting_approval" : "open";
-  await db.from("conversations").update({ status, last_message_at: now.toISOString() }).eq("id", conv.id).eq("shop_id", shopId);
-
-  try {
-    await deps.enqueue({ shopId, conversationId: conv.id, messageId: message.id });
-  } catch {
-    console.error("chat: could not queue message", message.id);
-  }
-  return { messages: await messagesFor(db, shopId, conv.id) };
+  const conversationId = conv.id;
+  // Independent steps run together so the shopper's message is confirmed quickly.
+  const [, , messages] = await Promise.all([
+    db.from("conversations").update({ status, last_message_at: now.toISOString() }).eq("id", conversationId).eq("shop_id", shopId),
+    deps.enqueue({ shopId, conversationId, messageId: message.id }).catch(() => {
+      console.error("chat: could not queue message", message.id);
+    }),
+    messagesFor(db, shopId, conversationId),
+  ]);
+  return { messages };
 }

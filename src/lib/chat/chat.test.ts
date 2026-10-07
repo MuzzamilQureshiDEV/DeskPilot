@@ -92,7 +92,7 @@ describe("storefront widget helpers", () => {
   runInNewContext(source, sandbox);
   const chat = sandbox.window.DeskPilotChat as unknown as {
     mergeMessages: (a: object[], b: object[]) => { id: string }[];
-    nextDelay: (open: boolean, failures: number) => number;
+    nextDelay: (open: boolean, failures: number, fast?: boolean) => number;
     awaitingReply: (m: { from: string }[]) => boolean;
   };
 
@@ -111,6 +111,8 @@ describe("storefront widget helpers", () => {
     expect(chat.nextDelay(false, 0)).toBe(30000);
     expect(chat.nextDelay(true, 2)).toBe(16000);
     expect(chat.nextDelay(true, 10)).toBe(60000);
+    // Waiting for a reply: poll fast.
+    expect(chat.nextDelay(true, 0, true)).toBe(1500);
   });
 
   it("knows when the shopper is waiting", () => {

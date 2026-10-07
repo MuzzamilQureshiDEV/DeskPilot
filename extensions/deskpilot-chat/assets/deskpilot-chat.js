@@ -7,8 +7,10 @@
   var TOKEN_KEY = "deskpilot-chat-token";
   var EMAIL_KEY = "deskpilot-chat-email";
   var OPEN_POLL = 4000;
+  var FAST_POLL = 1500;
   var CLOSED_POLL = 30000;
   var MAX_BACKOFF = 60000;
+  var TYPING_WINDOW = 60000; // show "typing…" this long after the shopper's last message
 
   // ---- Pure helpers (unit-tested) ------------------------------------------
 
@@ -26,9 +28,9 @@
     });
   }
 
-  /** Next poll delay: normal cadence, doubling after errors (capped). */
-  function nextDelay(open, failures) {
-    var base = open ? OPEN_POLL : CLOSED_POLL;
+  /** Next poll delay: fast while a reply is expected, normal when open, slow when closed; doubles after errors. */
+  function nextDelay(open, failures, fast) {
+    var base = fast ? FAST_POLL : open ? OPEN_POLL : CLOSED_POLL;
     return failures > 0 ? Math.min(base * Math.pow(2, failures), MAX_BACKOFF) : base;
   }
 
@@ -71,7 +73,18 @@
 
   var token = load(TOKEN_KEY);
   var endpoint = root.getAttribute("data-endpoint");
-  var state = { open: false, messages: [], failures: 0, unread: 0, sending: false, timer: null };
+  var title = root.getAttribute("data-title") || "Chat with us";
+  var state = {
+    open: false,
+    messages: [], // confirmed by the server
+    pending: [], // optimistic: { id, body, at, failed }
+    failures: 0,
+    unread: 0,
+    loading: false,
+    sentAt: 0,
+    timer: null,
+    tempId: 0,
+  };
 
   // ---- DOM -----------------------------------------------------------------
 
@@ -81,35 +94,67 @@
     if (text) node.textContent = text;
     return node;
   }
+  function svg(path, size) {
+    var s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    s.setAttribute("viewBox", "0 0 24 24");
+    s.setAttribute("width", size || 22);
+    s.setAttribute("height", size || 22);
+    s.setAttribute("aria-hidden", "true");
+    var p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    p.setAttribute("d", path);
+    p.setAttribute("fill", "none");
+    p.setAttribute("stroke", "currentColor");
+    p.setAttribute("stroke-width", "2");
+    p.setAttribute("stroke-linecap", "round");
+    p.setAttribute("stroke-linejoin", "round");
+    s.appendChild(p);
+    return s;
+  }
+  var ICON_CHAT = "M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z";
+  var ICON_CLOSE = "M6 6l12 12M18 6 6 18";
+  var ICON_SEND = "M5 12h14M13 6l6 6-6 6";
+  var ICON_DOWN = "M6 9l6 6 6-6";
 
   var launcher = el("button", "dpc-launcher");
   launcher.type = "button";
   launcher.setAttribute("aria-label", root.getAttribute("data-open-label") || "Open chat");
   launcher.setAttribute("aria-expanded", "false");
-  launcher.innerHTML =
-    '<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="currentColor" d="M4 4h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8l-4 4V6a2 2 0 0 1 2-2z"/></svg>';
+  var iconOpen = el("span", "dpc-icon dpc-icon-open");
+  iconOpen.appendChild(svg(ICON_CHAT, 26));
+  var iconClose = el("span", "dpc-icon dpc-icon-close");
+  iconClose.appendChild(svg(ICON_DOWN, 26));
+  launcher.appendChild(iconOpen);
+  launcher.appendChild(iconClose);
   var badge = el("span", "dpc-badge");
   badge.hidden = true;
   launcher.appendChild(badge);
 
   var panel = el("div", "dpc-panel");
   panel.setAttribute("role", "dialog");
-  panel.setAttribute("aria-label", root.getAttribute("data-title") || "Chat");
+  panel.setAttribute("aria-label", title);
   panel.hidden = true;
 
+  // Header: avatar + title + online status.
   var header = el("div", "dpc-header");
+  var who = el("div", "dpc-who");
+  var agent = (root.getAttribute("data-agent") || "").trim();
+  var avatar = el("span", "dpc-avatar", agent ? agent.charAt(0).toUpperCase() : "");
+  if (!agent) avatar.appendChild(svg("M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6z", 20));
+  avatar.appendChild(el("span", "dpc-online"));
   var titles = el("div", "dpc-titles");
-  titles.appendChild(el("strong", "", root.getAttribute("data-title") || "Chat with us"));
-  titles.appendChild(el("span", "dpc-sub", "AI assistant · a person can take over"));
-  var close = el("button", "dpc-close", "×");
+  titles.appendChild(el("strong", "dpc-title", title));
+  titles.appendChild(el("span", "dpc-sub", (agent ? agent + " · " : "") + "AI assistant · replies in seconds"));
+  who.appendChild(avatar);
+  who.appendChild(titles);
+  var close = el("button", "dpc-close");
   close.type = "button";
   close.setAttribute("aria-label", root.getAttribute("data-close-label") || "Close chat");
-  header.appendChild(titles);
+  close.appendChild(svg(ICON_CLOSE, 18));
+  header.appendChild(who);
   header.appendChild(close);
 
   var list = el("div", "dpc-list");
   list.setAttribute("aria-live", "polite");
-  var hint = el("p", "dpc-hint");
   var error = el("p", "dpc-error");
   error.setAttribute("role", "alert");
 
@@ -123,33 +168,88 @@
   var input = el("textarea", "dpc-input");
   input.rows = 1;
   input.maxLength = 2000;
-  input.placeholder = "Type your message…";
+  input.placeholder = "Write a message…";
   input.setAttribute("aria-label", "Your message");
-  var send = el("button", "dpc-send", "Send");
+  var send = el("button", "dpc-send");
   send.type = "submit";
+  send.setAttribute("aria-label", "Send");
+  send.appendChild(svg(ICON_SEND, 18));
   row.appendChild(input);
   row.appendChild(send);
   form.appendChild(email);
   form.appendChild(row);
+  var foot = el("p", "dpc-foot", "AI replies can make mistakes · a person can take over");
 
   panel.appendChild(header);
   panel.appendChild(list);
-  panel.appendChild(hint);
   panel.appendChild(error);
   panel.appendChild(form);
+  panel.appendChild(foot);
   root.appendChild(panel);
   root.appendChild(launcher);
   root.hidden = false;
 
+  // ---- Rendering -------------------------------------------------------------
+
+  function timeLabel(iso) {
+    var d = new Date(iso);
+    return isNaN(d) ? "" : d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  }
+
+  function bubble(m, extraClass) {
+    var b = el("div", "dpc-msg " + (m.from === "you" ? "dpc-you" : "dpc-agent") + (extraClass ? " " + extraClass : ""), m.body);
+    if (m.at) b.title = timeLabel(m.at);
+    return b;
+  }
+
+  function typing() {
+    var t = el("div", "dpc-msg dpc-agent dpc-typing");
+    t.setAttribute("aria-label", "Typing");
+    for (var i = 0; i < 3; i++) t.appendChild(el("span", "dpc-dot"));
+    return t;
+  }
+
+  function waitingForReply() {
+    return state.pending.length > 0 || awaitingReply(state.messages);
+  }
+  function typingNow() {
+    return waitingForReply() && Date.now() - state.sentAt < TYPING_WINDOW;
+  }
+
+  var rendered = {};
   function render() {
     list.textContent = "";
     var greeting = root.getAttribute("data-greeting");
-    if (greeting) list.appendChild(el("div", "dpc-msg dpc-agent", greeting));
+    if (greeting) list.appendChild(bubble({ from: "agent", body: greeting }, "dpc-greeting"));
+    if (state.loading && state.messages.length === 0) list.appendChild(el("div", "dpc-skeleton"));
     state.messages.forEach(function (m) {
-      list.appendChild(el("div", "dpc-msg " + (m.from === "you" ? "dpc-you" : "dpc-agent"), m.body));
+      list.appendChild(bubble(m, rendered[m.id] ? "" : "dpc-new"));
+      rendered[m.id] = true;
     });
-    hint.textContent = awaitingReply(state.messages) ? "Thanks! We'll reply here shortly." : "";
-    email.hidden = state.messages.length > 0 && !!email.value;
+    state.pending.forEach(function (p) {
+      var b = bubble({ from: "you", body: p.body, at: p.at }, p.failed ? "dpc-failed" : "dpc-sending");
+      if (p.failed) {
+        var retry = el("button", "dpc-retry", "Not sent · tap to retry");
+        retry.type = "button";
+        retry.addEventListener("click", function () {
+          state.pending = state.pending.filter(function (x) {
+            return x !== p;
+          });
+          deliver(p.body);
+        });
+        var wrap = el("div", "dpc-failed-wrap");
+        wrap.appendChild(b);
+        wrap.appendChild(retry);
+        list.appendChild(wrap);
+      } else {
+        list.appendChild(b);
+      }
+    });
+    if (typingNow()) list.appendChild(typing());
+    else if (waitingForReply() && state.pending.length === 0) {
+      list.appendChild(el("p", "dpc-hint", "Thanks! A teammate will reply here shortly."));
+    }
+    email.hidden = (state.messages.length > 0 || state.pending.length > 0) && !!email.value;
     list.scrollTop = list.scrollHeight;
     badge.hidden = state.open || state.unread === 0;
     badge.textContent = state.unread > 9 ? "9+" : String(state.unread);
@@ -173,7 +273,7 @@
   function schedule() {
     clearTimeout(state.timer);
     if (!token) return;
-    state.timer = setTimeout(poll, nextDelay(state.open, state.failures));
+    state.timer = setTimeout(poll, nextDelay(state.open, state.failures, state.open && typingNow()));
   }
 
   function poll() {
@@ -186,26 +286,29 @@
       })
       .then(function (data) {
         state.failures = 0;
+        state.loading = false;
         apply(data.messages);
       })
       .catch(function () {
         state.failures++;
+        state.loading = false;
+        render();
       })
       .then(schedule);
   }
 
-  form.addEventListener("submit", function (e) {
-    e.preventDefault();
-    var text = input.value.trim();
-    if (!text || state.sending) return;
+  /** Show the message immediately, then confirm it with the server. */
+  function deliver(text) {
     if (!token) {
       token = newToken();
       save(TOKEN_KEY, token);
     }
-    if (email.value) save(EMAIL_KEY, email.value.trim());
-    state.sending = true;
-    send.disabled = true;
+    var temp = { id: "tmp-" + ++state.tempId, body: text, at: new Date().toISOString(), failed: false };
+    state.pending.push(temp);
+    state.sentAt = Date.now();
     error.textContent = "";
+    render();
+
     fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -219,20 +322,36 @@
         });
       })
       .then(function (data) {
-        input.value = "";
+        state.pending = state.pending.filter(function (x) {
+          return x !== temp;
+        });
         apply(data.messages);
         schedule();
       })
       .catch(function (err) {
+        temp.failed = true;
         error.textContent = err && err.message ? err.message : "Couldn't send. Please try again.";
-      })
-      .then(function () {
-        state.sending = false;
-        send.disabled = false;
-        input.focus();
+        render();
       });
+  }
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var text = input.value.trim();
+    if (!text) return;
+    if (email.value) save(EMAIL_KEY, email.value.trim());
+    input.value = "";
+    autosize();
+    deliver(text);
+    input.focus();
   });
 
+  function autosize() {
+    input.style.height = "auto";
+    input.style.height = Math.min(input.scrollHeight, 120) + "px";
+    send.disabled = !input.value.trim();
+  }
+  input.addEventListener("input", autosize);
   input.addEventListener("keydown", function (e) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -245,9 +364,11 @@
     state.open = open;
     panel.hidden = !open;
     launcher.setAttribute("aria-expanded", String(open));
+    launcher.setAttribute("aria-label", open ? root.getAttribute("data-close-label") || "Close chat" : root.getAttribute("data-open-label") || "Open chat");
     root.classList.toggle("dpc-is-open", open);
     if (open) {
       state.unread = 0;
+      if (token && state.messages.length === 0) state.loading = true;
       render();
       input.focus();
       poll();
@@ -267,6 +388,7 @@
     if (e.key === "Escape") setOpen(false);
   });
 
+  autosize();
   render();
   if (token) poll();
 })(typeof window !== "undefined" ? window : globalThis);
