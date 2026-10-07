@@ -8,7 +8,7 @@ import { normalizeShopDomain, storeNameFromDomain } from "@/lib/shopify/domain";
 
 import { SignupForm } from "./signup-form";
 
-export const metadata: Metadata = { title: "Create your account · DeskPilot" };
+export const metadata: Metadata = { title: "Create your account · AstaDesk" };
 
 export default async function SignupPage({ searchParams }: PageProps<"/signup">) {
   const params = await searchParams;
@@ -27,7 +27,7 @@ export default async function SignupPage({ searchParams }: PageProps<"/signup">)
           <p className="flex items-start gap-2 rounded-lg bg-primary/10 px-3 py-2 text-sm">
             <Store className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
             <span>
-              Create your DeskPilot account to connect <strong>{shopDomain}</strong>. You&apos;ll go straight back to
+              Create your AstaDesk account to connect <strong>{shopDomain}</strong>. You&apos;ll go straight back to
               Shopify to finish.
             </span>
           </p>

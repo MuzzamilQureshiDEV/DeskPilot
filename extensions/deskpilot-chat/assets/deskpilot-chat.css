@@ -1,4 +1,4 @@
-/* DeskPilot chat: everything scoped under .dpc-root so themes aren't affected. */
+/* AstaDesk chat: everything scoped under .dpc-root so themes aren't affected. */
 .dpc-root {
   --dpc-accent: #0f766e;
   --dpc-accent-soft: color-mix(in srgb, var(--dpc-accent) 12%, white);

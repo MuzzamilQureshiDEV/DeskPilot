@@ -19,6 +19,6 @@ export function ContactLine({ email }: { email: string | null }) {
   return email ? (
     <a href={`mailto:${email}`}>{email}</a>
   ) : (
-    <span>the support contact shown in your DeskPilot dashboard (Settings)</span>
+    <span>the support contact shown in your AstaDesk dashboard (Settings)</span>
   );
 }

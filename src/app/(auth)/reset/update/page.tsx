@@ -5,7 +5,7 @@ import { requireUser } from "@/lib/auth/session";
 
 import { UpdatePasswordForm } from "./update-password-form";
 
-export const metadata: Metadata = { title: "Choose a new password · DeskPilot" };
+export const metadata: Metadata = { title: "Choose a new password · AstaDesk" };
 
 export default async function UpdatePasswordPage() {
   // Reached from the reset email link, which signs the user in.

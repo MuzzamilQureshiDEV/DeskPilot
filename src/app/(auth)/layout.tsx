@@ -7,9 +7,9 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
       <div className="absolute top-1/4 left-1/2 -z-10 h-80 w-[520px] -translate-x-1/2 rounded-full bg-primary/15 blur-3xl" aria-hidden />
       <Link href="/" className="flex items-center gap-2 font-semibold">
         <span className="flex size-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/70 font-display text-lg text-primary-foreground italic shadow-soft">
-          d
+          a
         </span>
-        DeskPilot
+        AstaDesk
       </Link>
       <div className="w-full max-w-sm">{children}</div>
       <nav aria-label="Legal" className="flex gap-4 text-xs text-muted-foreground">

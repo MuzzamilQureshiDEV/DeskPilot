@@ -12,7 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 
 import { SettingRow } from "./setting-row";
 
-export const metadata: Metadata = { title: "Automation · DeskPilot" };
+export const metadata: Metadata = { title: "Automation · AstaDesk" };
 
 export default async function AutomationPage() {
   const shop = await getCurrentShop();

@@ -22,7 +22,7 @@ import { loadPrices } from "@/lib/stripe/checkout";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "DeskPilot · AI customer support for Shopify stores",
+  title: "AstaDesk · AI customer support for Shopify stores",
   description:
     "An AI support agent that answers order, shipping and product questions from your real Shopify data, and never moves money without your approval.",
 };
@@ -31,8 +31,8 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 const STEPS = [
-  { icon: Store, title: "Connect Shopify", text: "One click. DeskPilot reads orders, tracking and products so answers use real data." },
-  { icon: Mail, title: "Forward your support email", text: "Keep your inbox. Customer emails, and chats from your store, land in DeskPilot." },
+  { icon: Store, title: "Connect Shopify", text: "One click. AstaDesk reads orders, tracking and products so answers use real data." },
+  { icon: Mail, title: "Forward your support email", text: "Keep your inbox. Customer emails, and chats from your store, land in AstaDesk." },
   { icon: Sparkles, title: "Let the agent draft", text: "It drafts replies in your tone. You send them, or turn on Autopilot for routine questions." },
 ];
 
@@ -56,7 +56,7 @@ const FAQ = [
   },
   {
     q: "Do I have to change my support email?",
-    a: "No. You forward your existing support inbox to DeskPilot. Customers keep writing to the same address, and replies come from your store's name.",
+    a: "No. You forward your existing support inbox to AstaDesk. Customers keep writing to the same address, and replies come from your store's name.",
   },
   {
     q: "How do customers know they're talking to an AI?",
@@ -100,7 +100,7 @@ export default async function LandingPage() {
           <span className="font-display font-normal italic text-primary">real data.</span>
         </h1>
         <p className="max-w-2xl text-lg text-muted-foreground text-balance">
-          DeskPilot is an AI support agent that answers order, shipping and product questions from Shopify, drafts replies in
+          AstaDesk is an AI support agent that answers order, shipping and product questions from Shopify, drafts replies in
           your voice, and never moves money without your approval.
         </p>
         <div className="flex flex-wrap justify-center gap-3">

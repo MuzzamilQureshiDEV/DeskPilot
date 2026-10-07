@@ -9,9 +9,9 @@ export function SiteHeader() {
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-4 px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2 font-semibold">
           <span className="flex size-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/70 font-display text-lg text-primary-foreground italic shadow-soft">
-            d
+            a
           </span>
-          DeskPilot
+          AstaDesk
         </Link>
         <nav aria-label="Main" className="ml-auto flex items-center gap-1 text-sm sm:gap-2">
           <Link href="/#how-it-works" className="hidden rounded-md px-3 py-2 text-muted-foreground hover:text-foreground sm:block">

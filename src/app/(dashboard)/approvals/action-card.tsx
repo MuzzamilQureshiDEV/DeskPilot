@@ -117,7 +117,7 @@ export function ActionCard({ action, compact = false }: { action: ActionCardData
       {action.status === "pending" && confirming && (
         <div className="ml-6 flex flex-col gap-2 rounded-lg border bg-background p-3">
           <p className="font-medium">{action.consequence}</p>
-          <p className="text-xs text-muted-foreground">This happens in your Shopify store and can&apos;t be undone from DeskPilot.</p>
+          <p className="text-xs text-muted-foreground">This happens in your Shopify store and can&apos;t be undone from AstaDesk.</p>
           <label className="flex items-center gap-2 text-xs">
             <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} className="accent-primary" />
             Email the customer from Shopify

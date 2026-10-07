@@ -237,7 +237,7 @@ export async function executeCancel(conn: ShopifyConn, orderId: string, opts: { 
   const res = await gql(
     conn,
     ORDER_CANCEL,
-    { id: order.id, restock: opts.restock, notify: opts.notifyCustomer, note: "Cancellation approved in DeskPilot" },
+    { id: order.id, restock: opts.restock, notify: opts.notifyCustomer, note: "Cancellation approved in AstaDesk" },
     orderCancelSchema,
   );
   const error = firstUserError(res.orderCancel.orderCancelUserErrors);

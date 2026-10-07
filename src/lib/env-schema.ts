@@ -40,7 +40,7 @@ export const serverEnvSchema = publicEnvSchema.extend({
   /** Shown on the Billing page for the custom Scale plan. */
   SALES_EMAIL: z.email().optional(),
   /** Legal pages (Privacy Policy, Terms). */
-  LEGAL_ENTITY_NAME: z.string().min(1).max(200).default("DeskPilot"),
+  LEGAL_ENTITY_NAME: z.string().min(1).max(200).default("AstaDesk"),
   LEGAL_CONTACT_EMAIL: z.email().optional(),
   LEGAL_GOVERNING_LAW: z.string().min(2).max(100).default("Pakistan"),
   SENTRY_DSN: z.url().optional(),

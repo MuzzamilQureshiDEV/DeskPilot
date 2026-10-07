@@ -89,7 +89,7 @@ export async function runAction(conn: ShopifyConn, action: ClaimedAction): Promi
         notifyCustomer: action.options.notifyCustomer,
         restock: action.options.restock,
         idempotencyKey: action.id,
-        note: `Approved in DeskPilot${p.reason ? `: ${p.reason}` : ""}`,
+        note: `Approved in AstaDesk${p.reason ? `: ${p.reason}` : ""}`,
       });
     }
     case "cancel":

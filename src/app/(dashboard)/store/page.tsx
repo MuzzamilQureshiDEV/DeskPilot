@@ -13,18 +13,18 @@ import { createClient } from "@/lib/supabase/server";
 
 import { ConnectForm, DisconnectButton } from "./connect-form";
 
-export const metadata: Metadata = { title: "Store · DeskPilot" };
+export const metadata: Metadata = { title: "Store · AstaDesk" };
 
 const ERRORS: Record<string, string> = {
   not_configured: "Connecting Shopify isn't available just yet. Please try again a little later.",
-  no_shop: "Your account isn't linked to a DeskPilot store.",
+  no_shop: "Your account isn't linked to a AstaDesk store.",
   invalid_domain: "That doesn't look like a Shopify store address. Use the form your-store.myshopify.com.",
   already_connected: "A store is already connected. Disconnect it first.",
   invalid: "The connection couldn't be verified. Please start again from this page.",
   session: "Your session expired during the connection. Log in and try again.",
   denied: "The connection was cancelled in Shopify.",
   scopes: "Some required permissions weren't granted. Connect again and approve all of them.",
-  domain_taken: "That Shopify store is already connected to another DeskPilot account.",
+  domain_taken: "That Shopify store is already connected to another AstaDesk account.",
   failed: "Shopify didn't complete the connection. Please try again.",
 };
 
@@ -66,7 +66,7 @@ export default async function StorePage({ searchParams }: PageProps<"/store">) {
         <p role="status" className="flex items-start gap-2 rounded-lg bg-primary/10 px-3 py-2 text-sm">
           <Sparkles className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
           <span>
-            <strong>Welcome to DeskPilot!</strong> Connect your Shopify store so {agent} can answer with real order
+            <strong>Welcome to AstaDesk!</strong> Connect your Shopify store so {agent} can answer with real order
             data. It takes about a minute.
           </span>
         </p>
@@ -108,7 +108,7 @@ export default async function StorePage({ searchParams }: PageProps<"/store">) {
                 <p className="flex items-center gap-2 text-sm">
                   <TriangleAlert className="size-4 text-destructive" aria-hidden />
                   {status.uninstalled_at
-                    ? `DeskPilot was uninstalled from this store in Shopify on ${dateFormat.format(new Date(status.uninstalled_at))}. Reconnect so ${agent} can see orders again. Customer data from this store is deleted 48 hours after uninstalling unless you reconnect.`
+                    ? `AstaDesk was uninstalled from this store in Shopify on ${dateFormat.format(new Date(status.uninstalled_at))}. Reconnect so ${agent} can see orders again. Customer data from this store is deleted 48 hours after uninstalling unless you reconnect.`
                     : `Shopify access expired. Reconnect so ${agent} can see live orders again.`}
                 </p>
                 {configured && <ConnectForm defaultDomain={status.domain} label="Reconnect" />}
@@ -127,7 +127,7 @@ export default async function StorePage({ searchParams }: PageProps<"/store">) {
             <div className="flex flex-col gap-2">
               <DisconnectButton />
               <p className="text-xs text-muted-foreground">
-                To fully remove access, also uninstall DeskPilot from your Shopify admin under Settings, then Apps.
+                To fully remove access, also uninstall AstaDesk from your Shopify admin under Settings, then Apps.
               </p>
             </div>
           </CardContent>

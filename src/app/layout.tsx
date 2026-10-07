@@ -23,11 +23,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DeskPilot",
+  title: "AstaDesk",
   description: "AI customer support for Shopify stores: answers from real store data, money actions only with your approval.",
-  applicationName: "DeskPilot",
+  applicationName: "AstaDesk",
   openGraph: {
-    title: "DeskPilot · AI customer support for Shopify stores",
+    title: "AstaDesk · AI customer support for Shopify stores",
     description: "Answers order, shipping and product questions from your real Shopify data, and never moves money without your approval.",
     type: "website",
   },

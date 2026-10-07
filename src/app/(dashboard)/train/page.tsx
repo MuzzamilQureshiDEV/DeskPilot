@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 
 import { KnowledgeEditor } from "./knowledge-editor";
 
-export const metadata: Metadata = { title: "Train · DeskPilot" };
+export const metadata: Metadata = { title: "Train · AstaDesk" };
 
 export default async function TrainPage({ searchParams }: PageProps<"/train">) {
   const kind = parseKind((await searchParams).kind);

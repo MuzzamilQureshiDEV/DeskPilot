@@ -15,7 +15,7 @@ export type ChatDeps = {
   now?: Date;
 };
 
-/** The shop behind a verified proxy request, if DeskPilot is installed there. */
+/** The shop behind a verified proxy request, if AstaDesk is installed there. */
 export async function chatShop(db: Db, domain: string): Promise<{ id: string } | ChatError> {
   const { data } = await db.from("shops").select("id, shopify_uninstalled_at").eq("shopify_domain", domain).maybeSingle();
   if (!data) return { error: "This store isn't set up for chat.", status: 404 };

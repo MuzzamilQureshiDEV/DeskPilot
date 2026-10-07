@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/types/database";
 
-// Everything DeskPilot holds about one customer, for a Shopify data request.
+// Everything AstaDesk holds about one customer, for a Shopify data request.
 // Built on demand through the signed-in member's RLS client; never stored.
 
 type Db = SupabaseClient<Database>;

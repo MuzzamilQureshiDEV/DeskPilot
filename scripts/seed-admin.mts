@@ -31,7 +31,7 @@ if (process.env.NODE_ENV === "production") {
 const [emailArg, passwordArg, shopArg] = process.argv.slice(2);
 const email = (emailArg ?? "admin@deskpilot.test").trim().toLowerCase();
 const password = passwordArg ?? randomBytes(12).toString("base64url");
-const shopName = shopArg ?? "DeskPilot Demo Store";
+const shopName = shopArg ?? "AstaDesk Demo Store";
 
 if (password.length < 8) {
   console.error("Password must be at least 8 characters.");

@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 
 import { ChoosePlanButton, ManageBillingButton } from "./billing-buttons";
 
-export const metadata: Metadata = { title: "Billing · DeskPilot" };
+export const metadata: Metadata = { title: "Billing · AstaDesk" };
 
 const dateFormat = new Intl.DateTimeFormat("en", { dateStyle: "medium", timeZone: "UTC" });
 
@@ -173,7 +173,7 @@ export default async function BillingPage({ searchParams }: PageProps<"/billing"
                 {plan === "scale" ? (
                   <Badge>Your current plan</Badge>
                 ) : salesEmail ? (
-                  <a href={`mailto:${salesEmail}?subject=DeskPilot%20Scale%20plan`} className="font-medium text-primary underline underline-offset-2">
+                  <a href={`mailto:${salesEmail}?subject=AstaDesk%20Scale%20plan`} className="font-medium text-primary underline underline-offset-2">
                     Contact us
                   </a>
                 ) : (
@@ -186,7 +186,7 @@ export default async function BillingPage({ searchParams }: PageProps<"/billing"
       )}
 
       <p className="text-xs text-muted-foreground">
-        Payments are handled securely by Stripe. DeskPilot never sees your card details. Prices exclude any applicable tax.
+        Payments are handled securely by Stripe. AstaDesk never sees your card details. Prices exclude any applicable tax.
       </p>
     </PageShell>
   );

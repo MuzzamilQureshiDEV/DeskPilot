@@ -3,7 +3,7 @@
 # client_id is public (it appears in every install URL); the secret is never here.
 
 client_id = "c16baae7d25b862c36fa9523b82bb309"
-name = "DeskPilot"
+name = "AstaDesk"
 application_url = "https://deskpilot-seven.vercel.app/api/shopify/install"
 embedded = false
 

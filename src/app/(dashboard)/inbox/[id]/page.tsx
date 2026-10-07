@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import { ActionCard } from "../../approvals/action-card";
 import { ConversationControls, DraftCard, ReplyComposer, ResendButton } from "./conversation-actions";
 
-export const metadata: Metadata = { title: "Conversation · DeskPilot" };
+export const metadata: Metadata = { title: "Conversation · AstaDesk" };
 
 
 export default async function ConversationPage({ params }: PageProps<"/inbox/[id]">) {

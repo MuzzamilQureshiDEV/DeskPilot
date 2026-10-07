@@ -8,6 +8,6 @@ import { activeNavItem } from "@/components/dashboard/nav";
 export function PageTitle() {
   const pathname = usePathname();
   return (
-    <span className="text-sm font-medium">{activeNavItem(pathname)?.title ?? "DeskPilot"}</span>
+    <span className="text-sm font-medium">{activeNavItem(pathname)?.title ?? "AstaDesk"}</span>
   );
 }

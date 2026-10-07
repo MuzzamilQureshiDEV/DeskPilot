@@ -1,4 +1,4 @@
-/* DeskPilot storefront chat. Plain JS, no dependencies.
+/* AstaDesk storefront chat. Plain JS, no dependencies.
  * Talks only to /apps/deskpilot/messages (Shopify app proxy, signed by Shopify).
  * Message text is always rendered with textContent (never innerHTML). */
 (function (global) {

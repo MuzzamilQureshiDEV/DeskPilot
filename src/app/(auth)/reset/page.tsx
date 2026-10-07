@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 import { ResetForm } from "./reset-form";
 
-export const metadata: Metadata = { title: "Reset password · DeskPilot" };
+export const metadata: Metadata = { title: "Reset password · AstaDesk" };
 
 export default function ResetPage() {
   return (

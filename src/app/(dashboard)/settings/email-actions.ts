@@ -14,8 +14,8 @@ export async function sendTestEmail(): Promise<{ ok: boolean; message: string }>
     {
       to: user.email,
       fromName: `${shop.agentName} at ${shop.name}`,
-      subject: "DeskPilot test email",
-      text: `This is a test from DeskPilot. If you can read this, ${shop.agentName}'s replies can reach your customers.\n\n${shop.agentName}`,
+      subject: "AstaDesk test email",
+      text: `This is a test from AstaDesk. If you can read this, ${shop.agentName}'s replies can reach your customers.\n\n${shop.agentName}`,
     },
     config,
   );

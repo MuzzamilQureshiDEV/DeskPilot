@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 
 import { ActionCard } from "./action-card";
 
-export const metadata: Metadata = { title: "Approvals · DeskPilot" };
+export const metadata: Metadata = { title: "Approvals · AstaDesk" };
 
 const SELECT = "id, type, status, payload, result, error, decided_at, created_at, conversation_id, conversations(subject, customers(name, email))";
 

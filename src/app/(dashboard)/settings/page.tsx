@@ -16,7 +16,7 @@ import { AgentForm } from "./agent-form";
 import { CopyAddress, TestEmailButton } from "./email-card";
 import { DataRequestActions } from "./privacy-card";
 
-export const metadata: Metadata = { title: "Settings · DeskPilot" };
+export const metadata: Metadata = { title: "Settings · AstaDesk" };
 
 const FILTER_LABELS: Record<string, string> = {
   auto_submitted: "auto-reply",
@@ -109,7 +109,7 @@ export default async function SettingsPage() {
             )}
           </CardTitle>
           <CardDescription>
-            Forward your support inbox to the address below. Customer emails then arrive in your DeskPilot inbox and {agent} drafts replies.
+            Forward your support inbox to the address below. Customer emails then arrive in your AstaDesk inbox and {agent} drafts replies.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-6">
@@ -166,7 +166,7 @@ export default async function SettingsPage() {
               </>
             ) : (
               <p className="text-sm text-muted-foreground">
-                Email sending isn&apos;t set up yet. Replies you send are recorded in DeskPilot but not emailed.
+                Email sending isn&apos;t set up yet. Replies you send are recorded in AstaDesk but not emailed.
               </p>
             )}
           </div>
@@ -201,7 +201,7 @@ export default async function SettingsPage() {
         <CardContent className="flex flex-col gap-4 text-sm">
           <ol className="flex list-decimal flex-col gap-1 pl-5 text-muted-foreground">
             <li>Open your theme editor with the button below (or Online Store, then Themes, then Customize, then App embeds).</li>
-            <li>Turn on <span className="font-medium text-foreground">DeskPilot chat</span> and pick your colour and greeting.</li>
+            <li>Turn on <span className="font-medium text-foreground">AstaDesk chat</span> and pick your colour and greeting.</li>
             <li>Click Save. The chat bubble appears on your store straight away.</li>
           </ol>
           {themeEditorUrl ? (

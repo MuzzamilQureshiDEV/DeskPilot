@@ -5,8 +5,8 @@ import { ContactLine, LegalPage } from "@/components/marketing/legal-page";
 import { LEGAL_EFFECTIVE_DATE, legalConfig } from "@/lib/legal/config";
 
 export const metadata: Metadata = {
-  title: "Terms of Service · DeskPilot",
-  description: "The terms that apply to using DeskPilot.",
+  title: "Terms of Service · AstaDesk",
+  description: "The terms that apply to using AstaDesk.",
 };
 
 export default function TermsPage() {
@@ -17,8 +17,8 @@ export default function TermsPage() {
       effective={LEGAL_EFFECTIVE_DATE}
       intro={
         <p>
-          These terms are an agreement between you (the business using DeskPilot, &ldquo;you&rdquo;) and {entity} (&ldquo;we&rdquo;).
-          By creating an account or using DeskPilot you agree to them. If you use DeskPilot for a company, you confirm you may
+          These terms are an agreement between you (the business using AstaDesk, &ldquo;you&rdquo;) and {entity} (&ldquo;we&rdquo;).
+          By creating an account or using AstaDesk you agree to them. If you use AstaDesk for a company, you confirm you may
           accept these terms for it.
         </p>
       }
@@ -26,7 +26,7 @@ export default function TermsPage() {
       <section>
         <h2>1. The service</h2>
         <p>
-          DeskPilot is an AI customer support tool for Shopify stores. It receives your customers&apos; emails and store chat
+          AstaDesk is an AI customer support tool for Shopify stores. It receives your customers&apos; emails and store chat
           messages, drafts or sends replies using your store data and the policies you provide, and proposes actions such as
           refunds, cancellations and address changes for your approval. Features may change as we improve the service.
         </p>
@@ -35,7 +35,7 @@ export default function TermsPage() {
       <section>
         <h2>2. Your account</h2>
         <ul>
-          <li>DeskPilot is for businesses. You must be at least 18 and able to enter a contract.</li>
+          <li>AstaDesk is for businesses. You must be at least 18 and able to enter a contract.</li>
           <li>Keep your login secure. You are responsible for activity under your account and for your team members.</li>
           <li>Give accurate information and keep it up to date.</li>
         </ul>
@@ -59,7 +59,7 @@ export default function TermsPage() {
       <section>
         <h2>4. Your customers&apos; data</h2>
         <p>
-          You control the data of your customers who contact you through DeskPilot, and we process it on your behalf as described
+          You control the data of your customers who contact you through AstaDesk, and we process it on your behalf as described
           in our <Link href="/privacy">Privacy Policy</Link>. You confirm you have the right to share it with us and that your
           own privacy notice tells customers you use an AI-assisted support service.
         </p>
@@ -67,7 +67,7 @@ export default function TermsPage() {
 
       <section>
         <h2>5. Acceptable use</h2>
-        <p>You must not use DeskPilot to:</p>
+        <p>You must not use AstaDesk to:</p>
         <ul>
           <li>break any law, or send spam, misleading or harmful messages;</li>
           <li>process data you have no right to process;</li>
@@ -94,7 +94,7 @@ export default function TermsPage() {
       <section>
         <h2>7. Third-party services</h2>
         <p>
-          DeskPilot connects to services such as Shopify, Stripe and email providers. Their own terms apply to your use of them,
+          AstaDesk connects to services such as Shopify, Stripe and email providers. Their own terms apply to your use of them,
           and we are not responsible for their availability or actions.
         </p>
       </section>
@@ -102,15 +102,15 @@ export default function TermsPage() {
       <section>
         <h2>8. Ownership</h2>
         <p>
-          You keep all rights to your data and content. We keep all rights to DeskPilot itself. You give us permission to use
-          your data only to provide and secure the service. Feedback you give us may be used to improve DeskPilot.
+          You keep all rights to your data and content. We keep all rights to AstaDesk itself. You give us permission to use
+          your data only to provide and secure the service. Feedback you give us may be used to improve AstaDesk.
         </p>
       </section>
 
       <section>
         <h2>9. Availability and changes</h2>
         <p>
-          We work to keep DeskPilot available and reliable, but we don&apos;t guarantee it will be uninterrupted or error-free.
+          We work to keep AstaDesk available and reliable, but we don&apos;t guarantee it will be uninterrupted or error-free.
           We may change or discontinue features. If we discontinue the whole service, we will give reasonable notice and a
           chance to export your data.
         </p>
@@ -119,7 +119,7 @@ export default function TermsPage() {
       <section>
         <h2>10. Disclaimers and liability</h2>
         <p>
-          To the extent the law allows, DeskPilot is provided &ldquo;as is&rdquo;, without warranties of any kind, including
+          To the extent the law allows, AstaDesk is provided &ldquo;as is&rdquo;, without warranties of any kind, including
           that AI replies will be accurate or suitable. Neither party is liable for indirect or consequential losses, such as lost
           profits or sales. Our total liability for any claim is limited to the fees you paid us in the 12 months before the
           claim. Nothing in these terms limits liability that cannot be limited by law.
@@ -129,7 +129,7 @@ export default function TermsPage() {
       <section>
         <h2>11. Termination</h2>
         <p>
-          You can stop using DeskPilot and close your account at any time. We may end these terms or suspend the service for a
+          You can stop using AstaDesk and close your account at any time. We may end these terms or suspend the service for a
           serious breach, or with 30 days&apos; notice for any other reason. After closing, we delete your data as described in
           the <Link href="/privacy">Privacy Policy</Link>.
         </p>
@@ -147,7 +147,7 @@ export default function TermsPage() {
         <h2>13. Changes and contact</h2>
         <p>
           We may update these terms. For material changes we will notify you by email or in the dashboard at least 14 days before
-          they take effect. Continuing to use DeskPilot after that means you accept them. Questions:{" "}
+          they take effect. Continuing to use AstaDesk after that means you accept them. Questions:{" "}
           <ContactLine email={contactEmail} />.
         </p>
       </section>

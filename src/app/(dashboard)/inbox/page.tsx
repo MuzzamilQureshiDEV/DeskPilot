@@ -10,7 +10,7 @@ import { asStatus, FILTER_LABEL, INBOX_FILTERS, NEEDS_ATTENTION, parseFilter, ti
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = { title: "Inbox · DeskPilot" };
+export const metadata: Metadata = { title: "Inbox · AstaDesk" };
 
 const CHANNEL = {
   email: { icon: Mail, label: "Email" },

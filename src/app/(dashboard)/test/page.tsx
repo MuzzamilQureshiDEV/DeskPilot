@@ -12,7 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 
 import { Playground } from "./playground";
 
-export const metadata: Metadata = { title: "Test · DeskPilot" };
+export const metadata: Metadata = { title: "Test · AstaDesk" };
 
 async function freeTextRunsToday(shopId: string): Promise<number> {
   const supabase = await createClient();

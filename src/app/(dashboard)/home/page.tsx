@@ -31,7 +31,7 @@ import { asStatus, NEEDS_ATTENTION, timeAgo } from "@/lib/inbox/labels";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = { title: "Home · DeskPilot" };
+export const metadata: Metadata = { title: "Home · AstaDesk" };
 
 const flag = (setup: unknown, key: string) =>
   !!setup && typeof setup === "object" && !Array.isArray(setup) && (setup as Record<string, unknown>)[key] === true;

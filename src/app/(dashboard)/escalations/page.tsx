@@ -11,7 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 
 import { EscalationActions } from "./escalation-actions";
 
-export const metadata: Metadata = { title: "Escalations · DeskPilot" };
+export const metadata: Metadata = { title: "Escalations · AstaDesk" };
 
 const CHANNEL_ICON = { email: Mail, chat: MessageCircle, sandbox: FlaskConical } as const;
 const SELECT = "id, channel, subject, status, escalation_reason, escalated_at, last_message_at, customers(name, email)";

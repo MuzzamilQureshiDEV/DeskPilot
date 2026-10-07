@@ -21,7 +21,7 @@ const toStore = (req: NextRequest, error: string) =>
  * Starts the Shopify OAuth flow. Two ways in:
  * - the Store page form (`?shop=…`), for a signed-in merchant, and
  * - Shopify's install link / App URL (`?shop=…&hmac=…&timestamp=…`), possibly
- *   before the merchant has a DeskPilot account.
+ *   before the merchant has a AstaDesk account.
  */
 export async function GET(req: NextRequest) {
   const cfg = shopifyAppConfig();

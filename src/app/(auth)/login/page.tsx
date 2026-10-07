@@ -6,7 +6,7 @@ import { safeNextPath } from "@/lib/auth/routes";
 
 import { LoginForm } from "./login-form";
 
-export const metadata: Metadata = { title: "Log in · DeskPilot" };
+export const metadata: Metadata = { title: "Log in · AstaDesk" };
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const params = await searchParams;
@@ -16,12 +16,12 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
     <Card>
       <CardHeader>
         <CardTitle>Welcome back</CardTitle>
-        <CardDescription>Log in to your DeskPilot account.</CardDescription>
+        <CardDescription>Log in to your AstaDesk account.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <LoginForm next={next || undefined} linkError={params.error === "link"} />
         <p className="text-center text-sm text-muted-foreground">
-          New to DeskPilot?{" "}
+          New to AstaDesk?{" "}
           <Link
             href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"}
             className="font-medium text-primary hover:underline"

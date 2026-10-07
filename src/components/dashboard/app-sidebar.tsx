@@ -68,13 +68,13 @@ export function AppSidebar({ shopName, email, storeConnected, counts }: AppSideb
             <SidebarMenuButton
               size="lg"
               render={<Link href="/home" />}
-              tooltip="DeskPilot"
+              tooltip="AstaDesk"
             >
               <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/70 font-display text-lg text-primary-foreground italic shadow-soft">
-                d
+                a
               </span>
               <span className="flex flex-col leading-tight">
-                <span className="font-semibold">DeskPilot</span>
+                <span className="font-semibold">AstaDesk</span>
                 <span className="text-xs text-muted-foreground">{displayName}</span>
               </span>
             </SidebarMenuButton>

@@ -10,7 +10,7 @@ let cached: Stripe | null | undefined;
 export function stripeClient(): Stripe | null {
   if (cached === undefined) {
     const key = serverEnv().STRIPE_SECRET_KEY;
-    cached = key ? new Stripe(key, { appInfo: { name: "DeskPilot" }, maxNetworkRetries: 2 }) : null;
+    cached = key ? new Stripe(key, { appInfo: { name: "AstaDesk" }, maxNetworkRetries: 2 }) : null;
   }
   return cached;
 }

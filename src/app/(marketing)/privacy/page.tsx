@@ -4,8 +4,8 @@ import { ContactLine, LegalPage } from "@/components/marketing/legal-page";
 import { LEGAL_EFFECTIVE_DATE, legalConfig } from "@/lib/legal/config";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy · DeskPilot",
-  description: "How DeskPilot collects, uses and protects merchant and customer data.",
+  title: "Privacy Policy · AstaDesk",
+  description: "How AstaDesk collects, uses and protects merchant and customer data.",
 };
 
 const PROVIDERS = [
@@ -14,7 +14,7 @@ const PROVIDERS = [
   ["Anthropic", "AI model that drafts replies (data is not used to train its models)"],
   ["Inngest", "Background job processing"],
   ["Postmark", "Receiving and sending support email"],
-  ["Stripe", "Subscription billing and payments (DeskPilot never sees full card numbers)"],
+  ["Stripe", "Subscription billing and payments (AstaDesk never sees full card numbers)"],
   ["Shopify", "Store data you connect (orders, products, customers)"],
   ["Sentry", "Error monitoring, with personal data removed before reports are sent"],
 ];
@@ -27,7 +27,7 @@ export default function PrivacyPage() {
       effective={LEGAL_EFFECTIVE_DATE}
       intro={
         <p>
-          This policy explains what personal data {entity} (&ldquo;DeskPilot&rdquo;, &ldquo;we&rdquo;) handles when merchants use
+          This policy explains what personal data {entity} (&ldquo;AstaDesk&rdquo;, &ldquo;we&rdquo;) handles when merchants use
           our AI customer support service and when their customers contact them through it, why we handle it, and the choices
           and rights you have.
         </p>
@@ -37,11 +37,11 @@ export default function PrivacyPage() {
         <h2>1. Who this policy covers and our role</h2>
         <ul>
           <li>
-            <strong>Merchants</strong> (our customers who create a DeskPilot account). For their account and billing data, we
+            <strong>Merchants</strong> (our customers who create a AstaDesk account). For their account and billing data, we
             decide how the data is used (we are the &ldquo;controller&rdquo;).
           </li>
           <li>
-            <strong>Shoppers</strong> (the merchant&apos;s customers who email or chat with a store that uses DeskPilot). For this
+            <strong>Shoppers</strong> (the merchant&apos;s customers who email or chat with a store that uses AstaDesk). For this
             data we act only on the merchant&apos;s instructions, as a &ldquo;processor&rdquo; or &ldquo;service provider&rdquo;. The
             merchant&apos;s own privacy policy also applies, and shoppers can contact the store directly about their data.
           </li>
@@ -59,7 +59,7 @@ export default function PrivacyPage() {
             details, products and customer details needed to answer support questions. Access tokens are encrypted.
           </li>
           <li>
-            <strong>Support conversations:</strong> emails forwarded to DeskPilot and messages sent through the store chat,
+            <strong>Support conversations:</strong> emails forwarded to AstaDesk and messages sent through the store chat,
             including the sender&apos;s name and email if provided, plus replies, drafts and internal notes.
           </li>
           <li>
@@ -105,7 +105,7 @@ export default function PrivacyPage() {
 
       <section>
         <h2>5. Service providers</h2>
-        <p>We share data only with providers that help us run DeskPilot, under contracts that protect it:</p>
+        <p>We share data only with providers that help us run AstaDesk, under contracts that protect it:</p>
         <ul>
           {PROVIDERS.map(([name, use]) => (
             <li key={name}>
@@ -125,7 +125,7 @@ export default function PrivacyPage() {
           <li>We keep account and conversation data while the merchant&apos;s account is active.</li>
           <li>
             When a shopper asks a store to delete their data, Shopify notifies us and we delete that shopper&apos;s conversations
-            automatically. When a store uninstalls DeskPilot, we delete its shoppers&apos; data 48 hours later unless the store
+            automatically. When a store uninstalls AstaDesk, we delete its shoppers&apos; data 48 hours later unless the store
             reconnects.
           </li>
           <li>Merchants can ask us to delete their whole account. We then delete their data, except what we must keep by law (for example invoices).</li>
@@ -157,7 +157,7 @@ export default function PrivacyPage() {
 
       <section>
         <h2>9. Children</h2>
-        <p>DeskPilot is a business service and is not directed at children under 16.</p>
+        <p>AstaDesk is a business service and is not directed at children under 16.</p>
       </section>
 
       <section>

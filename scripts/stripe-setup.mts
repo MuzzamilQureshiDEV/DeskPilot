@@ -26,8 +26,8 @@ console.log(`Stripe ${mode} mode`);
 
 // Kept in sync with PRICE_LOOKUP_KEYS in src/lib/billing/plans.ts.
 const PLANS = [
-  { lookupKey: "deskpilot_starter_monthly", name: "DeskPilot Starter", description: "100 AI replies a month", amount: 2900 },
-  { lookupKey: "deskpilot_growth_monthly", name: "DeskPilot Growth", description: "250 AI replies a month, autopilot", amount: 7900 },
+  { lookupKey: "deskpilot_starter_monthly", name: "AstaDesk Starter", description: "100 AI replies a month", amount: 2900 },
+  { lookupKey: "deskpilot_growth_monthly", name: "AstaDesk Growth", description: "250 AI replies a month, autopilot", amount: 7900 },
 ];
 const EVENTS: Stripe.WebhookEndpointCreateParams.EnabledEvent[] = [
   "checkout.session.completed",
@@ -81,7 +81,7 @@ if (ours) {
 } else {
   const created = await stripe.billingPortal.configurations.create({
     features,
-    business_profile: { headline: "Manage your DeskPilot plan" },
+    business_profile: { headline: "Manage your AstaDesk plan" },
     metadata: { app: "deskpilot" },
   });
   console.log(`+ Customer Portal: created ${created.id}`);
@@ -94,7 +94,7 @@ if (hook) {
   await stripe.webhookEndpoints.update(hook.id, { enabled_events: EVENTS, disabled: false });
   console.log(`✓ Webhook: updated ${hook.id} (its signing secret was printed when it was created)`);
 } else {
-  const created = await stripe.webhookEndpoints.create({ url: webhookUrl, enabled_events: EVENTS, description: "DeskPilot billing" });
+  const created = await stripe.webhookEndpoints.create({ url: webhookUrl, enabled_events: EVENTS, description: "AstaDesk billing" });
   console.log(`+ Webhook: created ${created.id} → ${webhookUrl}`);
   console.log(`\nSTRIPE_WEBHOOK_SECRET=${created.secret}\n(Save this in .env.local and Vercel. It is shown only once.)`);
 }
