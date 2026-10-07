@@ -87,7 +87,7 @@ describe("chat requests", () => {
 
 describe("storefront widget helpers", () => {
   // Load the real asset without a DOM; it exposes its pure helpers on window.
-  const source = readFileSync("extensions/deskpilot-chat/assets/deskpilot-chat.js", "utf8");
+  const source = readFileSync("extensions/deskpilot-chat/assets/deskpilot-chat.js", "utf8") /* built from widget/deskpilot-chat.src.js */;
   const sandbox: { window: { DeskPilotChat?: Record<string, (...a: never[]) => unknown> } } = { window: {} };
   runInNewContext(source, sandbox);
   const chat = sandbox.window.DeskPilotChat as unknown as {

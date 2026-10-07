@@ -18,6 +18,7 @@
     "dev:inngest": "npx --yes --ignore-scripts=false inngest-cli@latest dev -u http://localhost:3000/api/inngest",
     "dev:message": "node --env-file=.env.local scripts/simulate-message.mts",
     "dev:email": "node --env-file=.env.local scripts/simulate-email.mts",
+    "build:widget": "esbuild widget/deskpilot-chat.src.js --minify --target=es2019 --legal-comments=none --outfile=extensions/deskpilot-chat/assets/deskpilot-chat.js",
     "stripe:setup": "node --env-file=.env.local scripts/stripe-setup.mts"
   },
   "dependencies": {
@@ -47,6 +48,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitest/coverage-v8": "^5.0.3",
+    "esbuild": "^0.28.2",
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
     "supabase": "^2.119.0",
