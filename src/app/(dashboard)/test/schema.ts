@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import type { Category } from "@/lib/ai/schemas";
+import type { DataUsed, ExplainStep } from "@/lib/sandbox/explain";
 import { SCENARIO_IDS, sandboxCustomer } from "@/lib/sandbox/scenarios";
 
 export const MAX_HISTORY_TURNS = 10;
@@ -41,6 +42,9 @@ export type SandboxRunResult = {
   reasoning: string;
   tools: { name: string; ok: boolean }[];
   proposals: SandboxProposal[];
+  /** Plain-language steps ("What Ava did") and the sample data used. */
+  steps: ExplainStep[];
+  data: DataUsed;
   outcome: LiveOutcome;
   /** True when the agent didn't finish normally and a safe holding reply was used. */
   fallback: boolean;

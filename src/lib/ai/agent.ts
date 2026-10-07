@@ -51,7 +51,8 @@ export type AgentUsage = {
   cacheWriteTokens: number;
 };
 
-export type ToolCallLog = { name: string; ok: boolean; error?: string };
+/** One tool call. `input` stays in memory (shown on the Test page); production logs record names only. */
+export type ToolCallLog = { name: string; ok: boolean; error?: string; input?: unknown };
 
 export type FallbackReason = "max_rounds" | "refusal" | "max_tokens" | "context_exceeded";
 
@@ -205,11 +206,11 @@ export async function runAgent(input: AgentInput): Promise<AgentResult> {
 
       try {
         const output = await tool.run(parsed.data, ctx);
-        toolCalls.push({ name: call.name, ok: true });
+        toolCalls.push({ name: call.name, ok: true, input: parsed.data });
         results.push(toolResult(call.id, JSON.stringify(output)));
       } catch (err) {
         if (err instanceof ToolError) {
-          toolCalls.push({ name: call.name, ok: false, error: err.message });
+          toolCalls.push({ name: call.name, ok: false, error: err.message, input: parsed.data });
           results.push(toolResult(call.id, err.message, true));
         } else {
           // Unexpected (e.g. store API down). Log the tool name only, no customer data.

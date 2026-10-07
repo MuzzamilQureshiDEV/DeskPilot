@@ -1,66 +1,36 @@
 "use client";
 
-import { Bot, Loader2, RotateCcw, Send, Wrench } from "lucide-react";
+import { AlertTriangle, Check, RotateCcw, Sparkles, Star, X } from "lucide-react";
 import { useId, useState, useTransition } from "react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { SANDBOX_CUSTOMERS } from "@/lib/sandbox/data";
-import {
-  SANDBOX_FREE_TEXT_DAILY_LIMIT,
-  SCENARIOS,
-  SCENARIO_IDS,
-  sandboxCustomer,
-  type ScenarioId,
-} from "@/lib/sandbox/scenarios";
+import type { ExplainStep } from "@/lib/sandbox/explain";
+import { SANDBOX_FREE_TEXT_DAILY_LIMIT, SCENARIOS, SCENARIO_IDS, sandboxCustomer, type ScenarioId } from "@/lib/sandbox/scenarios";
+import { cn } from "@/lib/utils";
 
 import { runSandboxTest } from "./actions";
 import { ApprovalCard } from "./approval-card";
 import { MAX_HISTORY_TURNS, MAX_MESSAGE_LENGTH, type LiveOutcome, type SandboxRunResult } from "./schema";
 
-type Turn =
-  | { role: "customer"; body: string; name: string }
-  | { role: "ai"; result: SandboxRunResult };
-
+type Turn = { role: "customer"; body: string } | { role: "ai"; result: SandboxRunResult };
 type Thread = { kind: "scenario"; scenario: ScenarioId } | { kind: "free_text"; customerEmail: string };
 
-const OUTCOME_TEXT: Record<LiveOutcome, string> = {
-  sent: "Sent to the customer automatically",
-  draft: "Saved as a draft for you to review and send",
-  awaiting_approval: "Waiting for your approval before anything happens",
-  escalated: "Escalated to your team",
-  human: "Handed to your team (automation is off for this topic)",
+/** The request we recommend trying first (shows the approval flow). */
+const FEATURED: ScenarioId = "cancel_order";
+
+const STATUS: Record<LiveOutcome, { label: string; className: string }> = {
+  sent: { label: "Sent", className: "bg-success/15 text-success" },
+  draft: { label: "Draft ready", className: "bg-primary/10 text-primary" },
+  awaiting_approval: { label: "Needs approval", className: "bg-warning/15 text-[color-mix(in_oklch,var(--warning),var(--foreground)_45%)]" },
+  escalated: { label: "Escalated", className: "bg-destructive/10 text-destructive" },
+  human: { label: "Your team", className: "bg-muted text-muted-foreground" },
 };
 
-const TOOL_NAMES: Record<string, string> = {
-  lookup_order: "Looked up order",
-  get_tracking: "Checked tracking",
-  search_products: "Searched products",
-  get_policy: "Checked policy",
-  propose_refund: "Proposed refund",
-  propose_cancellation: "Proposed cancellation",
-  propose_address_change: "Proposed address change",
-  respond: "Wrote reply",
-};
+const PENDING_STEPS = ["Reading the message", "Looking up the order and customer", "Checking store policy", "Writing a reply"];
 
-function confidenceVariant(c: number) {
-  if (c >= 0.85) return "default" as const;
-  if (c >= 0.6) return "secondary" as const;
-  return "destructive" as const;
-}
-
-export function Playground({
-  agentName,
-  aiReady,
-  initialRemaining,
-}: {
-  agentName: string;
-  aiReady: boolean;
-  initialRemaining: number;
-}) {
+export function Playground({ agentName, aiReady, initialRemaining }: { agentName: string; aiReady: boolean; initialRemaining: number }) {
   const [thread, setThread] = useState<Thread | null>(null);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [remaining, setRemaining] = useState(initialRemaining);
@@ -73,13 +43,14 @@ export function Playground({
 
   const freeTextOpen = thread?.kind === "free_text" && thread.customerEmail === writeAs;
   const historyFull = freeTextOpen && turns.length >= MAX_HISTORY_TURNS;
+  const customerEmail = thread ? (thread.kind === "scenario" ? SCENARIOS[thread.scenario].customerEmail : thread.customerEmail) : null;
+  const customer = customerEmail ? sandboxCustomer(customerEmail) : null;
+  const latest = [...turns].reverse().find((t): t is Extract<Turn, { role: "ai" }> => t.role === "ai")?.result ?? null;
 
   function run(next: Thread, message: string, previous: Turn[]) {
-    const customer = sandboxCustomer(next.kind === "scenario" ? SCENARIOS[next.scenario].customerEmail : next.customerEmail);
     setError(null);
     setThread(next);
-    setTurns([...previous, { role: "customer", body: message, name: customer?.name ?? "Customer" }]);
-
+    setTurns([...previous, { role: "customer", body: message }]);
     startTransition(async () => {
       const res = await runSandboxTest(
         next.kind === "scenario"
@@ -88,14 +59,11 @@ export function Playground({
               kind: "free_text",
               customerEmail: next.customerEmail,
               message,
-              history: previous.map((t) =>
-                t.role === "customer" ? { role: "customer", body: t.body } : { role: "ai", body: t.result.reply },
-              ),
+              history: previous.map((t) => (t.role === "customer" ? { role: "customer", body: t.body } : { role: "ai", body: t.result.reply })),
             },
       );
       if (!res.ok) {
         setError(res.message);
-        // Drop the unanswered customer turn so it can be retried.
         setTurns(previous);
         if (previous.length === 0) setThread(null);
         if (res.code === "limit") setRemaining(0);
@@ -113,202 +81,252 @@ export function Playground({
     setDraft("");
   }
 
-  function reset() {
-    setThread(null);
-    setTurns([]);
-    setError(null);
-  }
-
   const disabled = !aiReady || pending;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
-      <div className="flex flex-col gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Try a scenario</CardTitle>
-            <CardDescription>Common requests from the sample store&apos;s customers.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            {SCENARIO_IDS.map((id) => (
-              <Button
+    <div className="flex flex-col gap-6">
+      {/* 1. Pick a request */}
+      <section className="flex flex-col gap-2" aria-labelledby="pick-heading">
+        <h2 id="pick-heading" className="text-sm font-medium text-muted-foreground">
+          Pick a support request
+        </h2>
+        <div className="flex flex-wrap gap-2">
+          {SCENARIO_IDS.map((id) => {
+            const active = thread?.kind === "scenario" && thread.scenario === id;
+            return (
+              <button
                 key={id}
-                variant={thread?.kind === "scenario" && thread.scenario === id ? "secondary" : "outline"}
-                className="h-auto justify-start py-2 text-left whitespace-normal"
+                type="button"
                 disabled={disabled}
                 onClick={() => run({ kind: "scenario", scenario: id }, SCENARIOS[id].message, [])}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-xl border bg-card px-4 py-2 text-sm font-medium shadow-soft transition-colors hover:border-primary/40 disabled:opacity-60",
+                  active && "border-primary bg-accent text-accent-foreground",
+                )}
               >
                 {SCENARIOS[id].label}
-              </Button>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Write your own</CardTitle>
-            <CardDescription>
-              {remaining} of {SANDBOX_FREE_TEXT_DAILY_LIMIT} messages left today.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form
-              className="flex flex-col gap-3"
-              onSubmit={(e) => {
-                e.preventDefault();
-                sendFreeText();
-              }}
-            >
-              <div className="flex flex-col gap-2">
-                <Label htmlFor={selectId}>Write as</Label>
-                <select
-                  id={selectId}
-                  value={writeAs}
-                  onChange={(e) => setWriteAs(e.target.value)}
-                  disabled={pending}
-                  className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
-                >
-                  {SANDBOX_CUSTOMERS.map((c) => (
-                    <option key={c.email} value={c.email}>
-                      {c.name} ({c.email})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor={messageId}>{freeTextOpen ? "Reply as the customer" : "Customer message"}</Label>
-                <Textarea
-                  id={messageId}
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  maxLength={MAX_MESSAGE_LENGTH}
-                  rows={4}
-                  placeholder="e.g. Hi, can I change the address on order #1002?"
-                  disabled={disabled || remaining === 0}
-                />
-              </div>
-              <Button type="submit" disabled={disabled || remaining === 0 || !draft.trim() || historyFull}>
-                <Send aria-hidden />
-                {freeTextOpen ? "Send reply" : "Send"}
-              </Button>
-              {historyFull && (
-                <p className="text-xs text-muted-foreground">This test conversation is full. Start over to try another.</p>
-              )}
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="min-h-96">
-        <CardHeader className="flex flex-row items-center justify-between gap-2">
-          <div className="flex flex-col gap-1">
-            <CardTitle>Conversation</CardTitle>
-            <CardDescription>
-              {thread?.kind === "scenario" ? `Expected: ${SCENARIOS[thread.scenario].expect}` : `See how ${agentName} replies.`}
-            </CardDescription>
-          </div>
+                {id === FEATURED && <Star className="size-3.5 fill-current text-primary" aria-label="Recommended" />}
+              </button>
+            );
+          })}
           {turns.length > 0 && (
-            <Button variant="ghost" size="sm" onClick={reset} disabled={pending}>
+            <Button variant="ghost" size="sm" className="ml-auto self-center" onClick={() => (setThread(null), setTurns([]), setError(null))} disabled={pending}>
               <RotateCcw aria-hidden />
               Start over
             </Button>
           )}
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4" aria-live="polite">
-          {turns.length === 0 && !error && (
-            <p className="py-12 text-center text-sm text-muted-foreground">
-              Pick a scenario or write a message to see {agentName} at work.
-            </p>
-          )}
+        </div>
+      </section>
 
-          {turns.map((turn, i) =>
-            turn.role === "customer" ? (
-              <div key={i} className="flex flex-col items-end gap-1">
-                <span className="text-xs text-muted-foreground">{turn.name}</span>
-                <p className="max-w-[85%] rounded-2xl rounded-tr-sm bg-muted px-4 py-2 text-sm whitespace-pre-wrap">
-                  {turn.body}
+      {error && (
+        <p role="alert" className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {error}
+        </p>
+      )}
+
+      {/* 2. Conversation + what the agent did */}
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+        <div className="flex flex-col gap-4">
+          <div className="flex min-h-72 flex-col gap-4 rounded-2xl border bg-card p-5 shadow-soft" aria-live="polite">
+            {thread && customer ? (
+              <>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold">{customer.name}</p>
+                    <p className="text-xs text-muted-foreground">{customer.email} · sample customer</p>
+                  </div>
+                  {latest && (
+                    <span className={cn("rounded-lg px-2.5 py-1 text-xs font-medium", STATUS[latest.outcome].className)}>
+                      {STATUS[latest.outcome].label}
+                      {thread.kind === "scenario" ? ` · #SBX-${thread.scenario.split("_")[0]}` : ""}
+                    </span>
+                  )}
+                </div>
+
+                {turns.map((turn, i) =>
+                  turn.role === "customer" ? (
+                    <div key={i} className="flex flex-col items-start gap-1">
+                      <span className="text-[11px] font-medium text-muted-foreground">Customer</span>
+                      <p className="max-w-[85%] rounded-2xl rounded-tl-md bg-muted px-4 py-2.5 text-sm whitespace-pre-wrap">{turn.body}</p>
+                    </div>
+                  ) : (
+                    <div key={i} className="flex flex-col items-end gap-1">
+                      <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                        {agentName} · {turn.result.outcome === "sent" ? "would send automatically" : "draft (not sent)"} ·{" "}
+                        {Math.round(turn.result.confidence * 100)}% confident
+                      </span>
+                      <p className="max-w-[92%] rounded-2xl rounded-tr-md border border-dashed border-primary/40 bg-accent/40 px-4 py-3 text-sm whitespace-pre-wrap">
+                        {turn.result.reply}
+                      </p>
+                    </div>
+                  ),
+                )}
+
+                {pending && (
+                  <div className="flex items-center gap-2 self-end rounded-2xl border border-dashed px-4 py-3 text-sm text-muted-foreground" role="status">
+                    <span className="flex gap-1" aria-hidden>
+                      {[0, 1, 2].map((d) => (
+                        <span key={d} className="size-1.5 animate-bounce rounded-full bg-primary/60" style={{ animationDelay: `${d * 150}ms` }} />
+                      ))}
+                    </span>
+                    {agentName} is checking the store…
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="flex flex-1 flex-col items-center justify-center gap-2 py-10 text-center">
+                <span className="flex size-12 items-center justify-center rounded-2xl bg-accent text-primary">
+                  <Sparkles className="size-6" aria-hidden />
+                </span>
+                <p className="font-medium">Pick a request to watch {agentName} work</p>
+                <p className="max-w-sm text-sm text-muted-foreground">
+                  {agentName} reads the message, looks up the sample order, checks the policy and drafts a reply. Nothing is sent
+                  to anyone.
                 </p>
               </div>
+            )}
+          </div>
+
+          {latest?.proposals.map((p) => <ApprovalCard key={`${p.type}-${p.orderNumber}`} proposal={p} />)}
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <div className="rounded-2xl border bg-card p-5 shadow-soft">
+            <h3 className="mb-3 font-semibold">What {agentName} did</h3>
+            {pending ? (
+              <ol className="flex flex-col gap-3">
+                {PENDING_STEPS.map((label, i) => (
+                  <li key={label} className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                    <span className="size-4 animate-pulse rounded-full bg-muted" style={{ animationDelay: `${i * 200}ms` }} aria-hidden />
+                    {label}…
+                  </li>
+                ))}
+              </ol>
+            ) : latest ? (
+              <ol className="flex flex-col gap-3">
+                {latest.steps.map((s, i) => (
+                  <StepRow key={i} step={s} />
+                ))}
+              </ol>
             ) : (
-              <AgentTurn key={i} agentName={agentName} result={turn.result} />
-            ),
-          )}
+              <p className="text-sm text-muted-foreground">Each step {agentName} takes appears here: what it looked up, which policy it checked, and why.</p>
+            )}
+          </div>
 
-          {pending && (
-            <p className="flex items-center gap-2 text-sm text-muted-foreground" role="status">
-              <Loader2 className="size-4 animate-spin" aria-hidden />
-              {agentName} is looking into it…
-            </p>
+          {latest && (latest.data.orders.length > 0 || latest.data.products.length > 0 || latest.data.policies.length > 0) && (
+            <div className="flex flex-col gap-4 rounded-2xl border bg-card p-5 shadow-soft">
+              <h3 className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Sample data {agentName} used</h3>
+              {latest.data.orders.map((o) => (
+                <div key={o.number} className="text-sm">
+                  <p>
+                    <span className="font-semibold">Order {o.number}</span> · {o.customer} · {o.total}
+                  </p>
+                  <p className="text-muted-foreground">{o.status}</p>
+                  {o.items.map((it) => (
+                    <p key={it} className="text-muted-foreground">
+                      {it}
+                    </p>
+                  ))}
+                </div>
+              ))}
+              {latest.data.products.map((p) => (
+                <div key={p.title} className="text-sm">
+                  <p>
+                    <span className="font-semibold">{p.title}</span> · {p.price}
+                  </p>
+                  <p className="text-muted-foreground">{p.stock}</p>
+                </div>
+              ))}
+              {latest.data.policies.map((p) => (
+                <div key={p.title} className="text-sm">
+                  <p className="font-semibold">{p.title}</p>
+                  <p className="text-muted-foreground italic">&ldquo;{p.content}&rdquo;</p>
+                </div>
+              ))}
+            </div>
           )}
+        </div>
+      </div>
 
-          {error && (
-            <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {error}
-            </p>
-          )}
-        </CardContent>
-      </Card>
+      {/* 3. Ask your own question */}
+      <section className="rounded-2xl border bg-card p-5 shadow-soft" aria-labelledby="ask-heading">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 id="ask-heading" className="font-semibold">
+            Ask {agentName} your own question
+          </h2>
+          <span className="text-xs text-muted-foreground">
+            {remaining} of {SANDBOX_FREE_TEXT_DAILY_LIMIT} free runs left today
+          </span>
+        </div>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Type any customer message. {agentName} answers from the sample store only (live AI, limited free runs).
+        </p>
+        <form
+          className="mt-4 flex flex-col gap-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            sendFreeText();
+          }}
+        >
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <label htmlFor={selectId} className="text-muted-foreground">
+              Write as
+            </label>
+            <select
+              id={selectId}
+              value={writeAs}
+              onChange={(e) => setWriteAs(e.target.value)}
+              disabled={pending}
+              className="h-8 rounded-lg border bg-background px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
+            >
+              {SANDBOX_CUSTOMERS.map((c) => (
+                <option key={c.email} value={c.email}>
+                  {c.name} ({c.email})
+                </option>
+              ))}
+            </select>
+          </div>
+          <label htmlFor={messageId} className="sr-only">
+            Customer message
+          </label>
+          <Textarea
+            id={messageId}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            maxLength={MAX_MESSAGE_LENGTH}
+            rows={3}
+            placeholder={freeTextOpen ? "Reply as the customer…" : "e.g. Do you ship free over $75?"}
+            disabled={disabled || remaining === 0}
+            className="bg-background"
+          />
+          <div className="flex items-center gap-3">
+            <Button type="submit" disabled={disabled || remaining === 0 || !draft.trim() || historyFull}>
+              <Sparkles aria-hidden />
+              {freeTextOpen ? "Send reply" : `Ask ${agentName}`}
+            </Button>
+            {historyFull && <p className="text-xs text-muted-foreground">This test conversation is full. Start over to try another.</p>}
+          </div>
+        </form>
+      </section>
     </div>
   );
 }
 
-function AgentTurn({ agentName, result }: { agentName: string; result: SandboxRunResult }) {
+function StepRow({ step }: { step: ExplainStep }) {
+  const Icon = step.status === "done" ? Check : step.status === "attention" ? AlertTriangle : X;
   return (
-    <div className="flex flex-col gap-2">
-      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <Bot className="size-3.5" aria-hidden />
-        {agentName}
-      </span>
-      <p className="max-w-[85%] rounded-2xl rounded-tl-sm border bg-background px-4 py-2 text-sm whitespace-pre-wrap">
-        {result.reply}
-      </p>
-
-      <div className="flex flex-wrap gap-1.5">
-        <Badge variant={confidenceVariant(result.confidence)}>{Math.round(result.confidence * 100)}% confident</Badge>
-        <Badge variant="outline">{result.category.replace("_", " ")}</Badge>
-        <Badge variant="outline">{result.sentiment}</Badge>
-        {result.tags.map((t) => (
-          <Badge key={t} variant="secondary">
-            {t}
-          </Badge>
-        ))}
-        {result.escalate && <Badge variant="destructive">Escalated</Badge>}
-      </div>
-
-      <p className="text-sm">
-        <span className="text-muted-foreground">In a live conversation: </span>
-        {OUTCOME_TEXT[result.outcome]}.
-      </p>
-      {result.escalate && result.escalateReason && (
-        <p className="text-sm text-muted-foreground">Why escalated: {result.escalateReason}</p>
-      )}
-      {result.fallback && (
-        <p className="text-sm text-muted-foreground">
-          The agent couldn&apos;t finish this one, so it used a safe holding reply.
-        </p>
-      )}
-
-      {result.proposals.map((p) => (
-        <ApprovalCard key={`${p.type}-${p.orderNumber}`} proposal={p} />
-      ))}
-
-      <details className="rounded-lg border px-3 py-2 text-sm">
-        <summary className="cursor-pointer text-muted-foreground">How {agentName} got there</summary>
-        <p className="mt-2">{result.reasoning}</p>
-        {result.tools.length > 0 && (
-          <ul className="mt-2 flex flex-wrap gap-1.5">
-            {result.tools.map((t, i) => (
-              <li key={i}>
-                <Badge variant={t.ok ? "outline" : "destructive"}>
-                  <Wrench aria-hidden />
-                  {TOOL_NAMES[t.name] ?? t.name}
-                  {t.ok ? "" : " (failed)"}
-                </Badge>
-              </li>
-            ))}
-          </ul>
+    <li className="flex gap-2.5">
+      <Icon
+        className={cn(
+          "mt-0.5 size-4 shrink-0",
+          step.status === "done" ? "text-success" : step.status === "attention" ? "text-warning" : "text-destructive",
         )}
-      </details>
-    </div>
+        aria-label={step.status === "done" ? "Done" : step.status === "attention" ? "Needs attention" : "Failed"}
+      />
+      <span className="flex flex-col">
+        <span className="text-sm font-medium">{step.label}</span>
+        <span className="text-xs text-muted-foreground">{step.detail}</span>
+      </span>
+    </li>
   );
 }

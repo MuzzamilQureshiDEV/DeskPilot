@@ -1,7 +1,7 @@
 import { PlugZap } from "lucide-react";
 import type { Metadata } from "next";
 
-import { PageHeader, PageShell } from "@/components/dashboard/page-header";
+import { PageShell } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getCurrentShop } from "@/lib/auth/session";
@@ -36,10 +36,21 @@ export default async function TestPage() {
 
   return (
     <PageShell>
-      <PageHeader
-        title="Test"
-        description={`Try ${agentName} on ${SANDBOX_STORE_NAME}, a sample store. Nothing here touches real orders or Shopify.`}
-      />
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Test {agentName}</h1>
+          <span className="rounded-lg bg-warning/15 px-2.5 py-1 text-xs font-medium text-[color-mix(in_oklch,var(--warning),var(--foreground)_45%)]">
+            Sandbox mode
+          </span>
+        </div>
+        <p className="text-muted-foreground">
+          See how {agentName} handles real support requests using a sample Shopify store. No Shopify or email connection required.
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Sample store · {SANDBOX_STORE_NAME}. It has sample customers and orders. No real store, inbox or customer is connected, and
+          nothing here can change or email anyone real.
+        </p>
+      </div>
 
       {!aiReady && (
         <div role="status" className="flex items-start gap-3 rounded-xl border border-dashed p-4">

@@ -10,7 +10,8 @@ import { getCurrentShop } from "@/lib/auth/session";
 import { summarizeAction } from "@/lib/inbox/action-summary";
 import { PLANS, planOf } from "@/lib/billing/plans";
 import { loadKnowledge } from "@/lib/knowledge/load";
-import { SANDBOX_KNOWLEDGE, SANDBOX_STORE_NAME } from "@/lib/sandbox/data";
+import { buildSandboxStore, SANDBOX_KNOWLEDGE, SANDBOX_STORE_NAME } from "@/lib/sandbox/data";
+import { explainRun } from "@/lib/sandbox/explain";
 import { SandboxProvider } from "@/lib/sandbox/provider";
 import { SCENARIOS, sandboxCustomer } from "@/lib/sandbox/scenarios";
 import { createClient } from "@/lib/supabase/server";
@@ -21,6 +22,15 @@ import {
   type SandboxProposal,
   type SandboxRunResponse,
 } from "./schema";
+
+/** What would happen to the reply in a live conversation, in plain words. */
+const OUTCOME_TEXT: Record<LiveOutcome, string> = {
+  sent: "Reply would be sent to the customer automatically (Autopilot).",
+  draft: "Reply saved as a draft for you to review and send.",
+  awaiting_approval: "Reply drafted. It waits with the action until you approve.",
+  escalated: "Holding reply drafted, and the conversation handed to your team.",
+  human: "Draft only: automation is off for this topic, so your team handles it.",
+};
 
 const DEFAULT_SETTING: AutomationSetting = { mode: "copilot", confidenceThreshold: 0.85 };
 
@@ -122,6 +132,18 @@ export async function runSandboxTest(raw: unknown): Promise<SandboxRunResponse> 
             : "draft";
 
   const r = result.response;
+  const proposals = result.proposals.map(summarize);
+  const explained = explainRun({
+    category: r.category,
+    toolCalls: result.toolCalls,
+    proposals,
+    escalate: r.escalate,
+    escalateReason: r.escalate_reason,
+    outcomeText: OUTCOME_TEXT[outcome],
+    fallback: result.fallback !== null,
+    store: buildSandboxStore(),
+    knowledge: SANDBOX_KNOWLEDGE,
+  });
   return {
     ok: true,
     result: {
@@ -134,7 +156,9 @@ export async function runSandboxTest(raw: unknown): Promise<SandboxRunResponse> 
       escalateReason: r.escalate_reason,
       reasoning: r.reasoning,
       tools: result.toolCalls.map(({ name, ok }) => ({ name, ok })),
-      proposals: result.proposals.map(summarize),
+      proposals,
+      steps: explained.steps,
+      data: explained.data,
       outcome,
       fallback: result.fallback !== null,
       freeTextRemaining: remaining,

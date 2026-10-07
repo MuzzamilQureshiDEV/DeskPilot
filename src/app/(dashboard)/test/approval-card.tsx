@@ -1,64 +1,55 @@
 "use client";
 
-import { Ban, CheckCircle2, MapPin, ReceiptText, ShieldCheck, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 
 import type { SandboxProposal } from "./schema";
 
-const ICONS = { refund: ReceiptText, cancel: Ban, address_change: MapPin } as const;
-
 /** Sandbox version of the approval card. Deciding only changes local state. */
 export function ApprovalCard({ proposal }: { proposal: SandboxProposal }) {
   const [decision, setDecision] = useState<"approved" | "rejected" | null>(null);
-  const Icon = ICONS[proposal.type];
 
   return (
-    <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
-      <div className="flex items-start gap-3">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-          <Icon className="size-4" aria-hidden />
+    <div className="flex flex-col gap-3 rounded-2xl border border-warning/60 bg-card p-5 shadow-soft">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="flex items-center gap-1.5 text-sm font-semibold">
+          <AlertTriangle className="size-4 text-warning" aria-hidden />
+          Action requires your approval
+        </p>
+        <span className="rounded-lg bg-warning/15 px-2.5 py-1 text-xs font-medium text-[color-mix(in_oklch,var(--warning),var(--foreground)_45%)]">
+          Sandbox action · sample store
         </span>
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <p className="text-xs font-medium uppercase tracking-wide text-primary">
-            <ShieldCheck className="mr-1 inline size-3.5 align-[-2px]" aria-hidden />
-            Needs your approval
-          </p>
-          <p className="font-medium">
-            {proposal.title} · Order {proposal.orderNumber}
-          </p>
-          <ul className="text-sm text-muted-foreground">
-            {proposal.details.map((d) => (
-              <li key={d}>{d}</li>
-            ))}
-          </ul>
-        </div>
       </div>
+      <p className="font-semibold">
+        {proposal.title} · order {proposal.orderNumber}
+      </p>
+      <ul className="text-sm text-muted-foreground">
+        {proposal.details.map((d) => (
+          <li key={d}>{d}</li>
+        ))}
+      </ul>
+      <p className="text-xs text-muted-foreground">
+        In production this waits for you before anything happens in Shopify. Here, approving only updates the sample store.
+      </p>
 
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        {decision === null ? (
-          <>
-            <Button size="sm" onClick={() => setDecision("approved")}>
-              Approve
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => setDecision("rejected")}>
-              Reject
-            </Button>
-            <span className="text-xs text-muted-foreground">Sample store: nothing is sent to Shopify.</span>
-          </>
-        ) : (
-          <p role="status" className="flex items-center gap-1.5 text-sm">
-            {decision === "approved" ? (
-              <CheckCircle2 className="size-4 text-primary" aria-hidden />
-            ) : (
-              <XCircle className="size-4 text-muted-foreground" aria-hidden />
-            )}
-            {decision === "approved" ? "Approved" : "Rejected"}. In a live store this would{" "}
-            {decision === "approved" ? "run in Shopify" : "be dismissed"}. Here nothing was sent.
-          </p>
-        )}
-      </div>
+      {decision === null ? (
+        <div className="flex gap-2">
+          <Button onClick={() => setDecision("approved")} className="bg-success text-white hover:bg-success/90">
+            Approve
+          </Button>
+          <Button variant="outline" onClick={() => setDecision("rejected")}>
+            Reject
+          </Button>
+        </div>
+      ) : (
+        <p role="status" className="flex items-center gap-1.5 text-sm">
+          {decision === "approved" ? <CheckCircle2 className="size-4 text-success" aria-hidden /> : <XCircle className="size-4 text-muted-foreground" aria-hidden />}
+          {decision === "approved" ? "Approved" : "Rejected"}. In a live store this would {decision === "approved" ? "run in Shopify" : "be dismissed"}. Nothing
+          was sent here.
+        </p>
+      )}
     </div>
   );
 }
