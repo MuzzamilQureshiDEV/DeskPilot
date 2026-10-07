@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { loadHomeStats } from "@/lib/home/stats";
+import { loadHomeStats, loadTrends } from "@/lib/home/stats";
 
 import { adminClient, createTestUser, deleteTestUser, hasDbEnv, type Db, type TestUser } from "./helpers";
 
@@ -73,8 +73,11 @@ describe.skipIf(!hasDbEnv)("home stats (live DB)", () => {
       aiRepliesSent: 0,
       escalated: 0,
       pendingApprovals: 0,
+      draftsToReview: 0,
       resolved: 0,
       avgConfidence: null,
     });
+    const trends = await loadTrends(b.client, shopA);
+    expect(trends.aiReplies.every((n) => n === 0) && trends.conversations.every((n) => n === 0)).toBe(true);
   });
 });

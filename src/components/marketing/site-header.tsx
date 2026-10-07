@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ThemeToggle } from "@/components/theme-toggle";
 import { buttonVariants } from "@/components/ui/button";
 
 export function SiteHeader() {
@@ -7,7 +8,9 @@ export function SiteHeader() {
     <header className="sticky top-0 z-20 border-b bg-background/90 backdrop-blur">
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-4 px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2 font-semibold">
-          <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-sm text-primary-foreground">D</span>
+          <span className="flex size-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/70 font-display text-lg text-primary-foreground italic shadow-soft">
+            d
+          </span>
           DeskPilot
         </Link>
         <nav aria-label="Main" className="ml-auto flex items-center gap-1 text-sm sm:gap-2">
@@ -17,6 +20,7 @@ export function SiteHeader() {
           <Link href="/#pricing" className="hidden rounded-md px-3 py-2 text-muted-foreground hover:text-foreground sm:block">
             Pricing
           </Link>
+          <ThemeToggle className="mr-1 hidden md:inline-flex" />
           <Link href="/login" className={buttonVariants({ variant: "ghost", size: "sm" })}>
             Log in
           </Link>

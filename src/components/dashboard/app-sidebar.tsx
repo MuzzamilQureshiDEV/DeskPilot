@@ -1,12 +1,14 @@
 "use client";
 
-import { ChevronsUpDown, CreditCard, LogOut, Settings } from "lucide-react";
+import { ChevronsUpDown, CreditCard, LogOut, Search, Settings } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTransition } from "react";
 
 import { signOut } from "@/app/(auth)/actions";
+import { openCommandPalette } from "@/components/dashboard/command-palette";
 import { activeNavItem, NAV_GROUPS } from "@/components/dashboard/nav";
+import { ThemeToggle } from "@/components/theme-toggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -68,13 +70,24 @@ export function AppSidebar({ shopName, email, storeConnected, counts }: AppSideb
               render={<Link href="/home" />}
               tooltip="DeskPilot"
             >
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground">
-                D
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/70 font-display text-lg text-primary-foreground italic shadow-soft">
+                d
               </span>
               <span className="flex flex-col leading-tight">
                 <span className="font-semibold">DeskPilot</span>
                 <span className="text-xs text-muted-foreground">{displayName}</span>
               </span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              tooltip="Search (Ctrl/⌘ K)"
+              onClick={openCommandPalette}
+              className="border bg-background text-muted-foreground shadow-soft hover:text-foreground"
+            >
+              <Search aria-hidden />
+              <span>Search…</span>
+              <kbd className="ml-auto rounded border bg-muted px-1.5 text-[10px] font-medium group-data-[collapsible=icon]:hidden">⌘K</kbd>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -128,6 +141,10 @@ export function AppSidebar({ shopName, email, storeConnected, counts }: AppSideb
       </SidebarContent>
 
       <SidebarFooter>
+        <div className="flex items-center justify-between px-2 group-data-[collapsible=icon]:hidden">
+          <span className="text-xs text-muted-foreground">Theme</span>
+          <ThemeToggle />
+        </div>
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>

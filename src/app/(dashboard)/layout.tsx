@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { getCurrentShop, requireUser } from "@/lib/auth/session";
+import { CommandPalette } from "@/components/dashboard/command-palette";
 import { LiveRefresh } from "@/components/dashboard/live-refresh";
 import { loadAiAccess } from "@/lib/billing/usage";
 import { createClient } from "@/lib/supabase/server";
@@ -42,8 +43,9 @@ export default async function DashboardLayout({ children }: LayoutProps<"/">) {
         counts={{ escalations: escalations ?? 0, approvals: approvals ?? 0 }}
       />
       {shop && <LiveRefresh shopId={shop.id} />}
+      <CommandPalette />
       <SidebarInset>
-        <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
+        <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur-md">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4 data-vertical:self-center" />
           <PageTitle />

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { buildChecklist, checklistProgress, type SetupState } from "@/lib/home/checklist";
-import { average } from "@/lib/home/stats";
+import { average, dailyBuckets } from "@/lib/home/stats";
 import { agentSettingsSchema, presetFor, toneText } from "@/lib/settings/agent";
 
 const fresh: SetupState = { storeConnected: false, policyCount: 0, emailConnected: false, toneChosen: false, testRuns: 0, live: false };
@@ -57,5 +57,13 @@ describe("agent settings", () => {
     expect(presetFor("friendly")).toBe("friendly"); // the signup default
     expect(presetFor("calm, patient and empathetic")).toBe("empathetic");
     expect(presetFor("like a surf shop")).toBe("custom");
+  });
+});
+
+describe("daily trend buckets", () => {
+  const now = new Date("2026-10-07T15:00:00Z");
+  it("counts per UTC day, oldest first, ignoring older or empty dates", () => {
+    const b = dailyBuckets(["2026-10-07T01:00:00Z", "2026-10-07T23:00:00Z", "2026-10-06T12:00:00Z", "2026-09-01T00:00:00Z", null], now, 3);
+    expect(b).toEqual([0, 1, 2]);
   });
 });

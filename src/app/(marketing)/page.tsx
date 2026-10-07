@@ -88,12 +88,16 @@ export default async function LandingPage() {
 
   return (
     <>
-      <section className="mx-auto flex w-full max-w-6xl flex-col items-center gap-6 px-4 pt-20 pb-16 text-center sm:px-6 sm:pt-28">
+      <section className="relative isolate overflow-hidden">
+        <div className="absolute inset-0 -z-10 bg-dots [mask-image:radial-gradient(ellipse_at_top,black_30%,transparent_70%)]" aria-hidden />
+        <div className="absolute top-0 left-1/2 -z-10 h-[420px] w-[720px] -translate-x-1/2 rounded-full bg-primary/20 blur-3xl" aria-hidden />
+        <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-6 px-4 pt-20 pb-16 text-center sm:px-6 sm:pt-28">
         <span className="rounded-full border bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground">
           For Shopify merchants · 14-day free trial, no card needed
         </span>
-        <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
-          Customer support that runs on your store&apos;s real data.
+        <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-balance sm:text-6xl">
+          Customer support that runs on your store&apos;s{" "}
+          <span className="font-display font-normal italic text-primary">real data.</span>
         </h1>
         <p className="max-w-2xl text-lg text-muted-foreground text-balance">
           DeskPilot is an AI support agent that answers order, shipping and product questions from Shopify, drafts replies in
@@ -116,6 +120,34 @@ export default async function LandingPage() {
             </li>
           ))}
         </ul>
+
+        {/* Product preview: what a conversation looks like */}
+        <div className="mt-10 w-full max-w-3xl rounded-2xl border bg-card/80 p-2 text-left shadow-lift backdrop-blur">
+          <div className="flex items-center gap-1.5 px-3 py-2" aria-hidden>
+            <span className="size-2.5 rounded-full bg-destructive/60" />
+            <span className="size-2.5 rounded-full bg-warning/70" />
+            <span className="size-2.5 rounded-full bg-success/70" />
+            <span className="ml-3 text-xs text-muted-foreground">Inbox · Where is my order #1001?</span>
+          </div>
+          <div className="flex flex-col gap-3 rounded-xl bg-background p-4 sm:p-5">
+            <div className="max-w-[80%] self-start rounded-2xl rounded-bl-md bg-muted px-4 py-2.5 text-sm">
+              Hi! I ordered a jacket last week. Where is order #1001?
+            </div>
+            <div className="flex max-w-[85%] flex-col gap-2 self-end rounded-2xl rounded-br-md border border-primary/30 bg-accent px-4 py-3 text-sm text-accent-foreground">
+              <span className="flex items-center gap-2 text-xs font-medium">
+                <Sparkles className="size-3.5" aria-hidden /> Ava&apos;s draft · 94% confident · from Shopify
+              </span>
+              Hi Emma! Your order #1001 shipped on Monday with UPS. It&apos;s due on Thursday, and you can track it here:
+              1Z999AA10123456784.
+            </div>
+            <div className="flex flex-wrap gap-2 self-end text-xs">
+              <span className="rounded-full bg-primary px-3 py-1 font-medium text-primary-foreground">Send</span>
+              <span className="rounded-full border px-3 py-1">Edit</span>
+              <span className="rounded-full border px-3 py-1">Take over</span>
+            </div>
+          </div>
+        </div>
+        </div>
       </section>
 
       <section id="how-it-works" className="scroll-mt-20 border-y bg-muted/30">
