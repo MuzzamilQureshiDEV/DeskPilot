@@ -6,27 +6,28 @@ import { useActionState, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { TONE_PRESETS, toneText } from "@/lib/settings/agent";
+import { AGENT_NAME, TONE_PRESETS, toneText } from "@/lib/settings/agent";
 import { cn } from "@/lib/utils";
 
 import { saveAgentSettings, type AgentSettingsState } from "./actions";
 
-export function AgentForm({ agentName, preset, customTone }: { agentName: string; preset: string; customTone: string }) {
+export function AgentForm({ preset, customTone }: { preset: string; customTone: string }) {
   const [state, action, pending] = useActionState<AgentSettingsState, FormData>(saveAgentSettings, {});
-  const [name, setName] = useState(agentName);
   const [selected, setSelected] = useState(preset);
   const [custom, setCustom] = useState(customTone);
-  const nameId = useId();
   const customId = useId();
   const tone = toneText(selected, custom) || "…";
 
   return (
     <form action={action} className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <Label htmlFor={nameId}>Agent name</Label>
-        <Input id={nameId} name="agentName" value={name} onChange={(e) => setName(e.target.value)} maxLength={40} required className="max-w-xs" />
-        <p className="text-xs text-muted-foreground">Customers see this name at the end of every reply.</p>
-        {state.fieldErrors?.agentName && <p className="text-sm text-destructive">{state.fieldErrors.agentName[0]}</p>}
+      <div className="flex items-center gap-3">
+        <span className="flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/70 font-display text-lg text-primary-foreground italic shadow-soft">
+          A
+        </span>
+        <div>
+          <p className="font-medium">{AGENT_NAME}</p>
+          <p className="text-xs text-muted-foreground">Your AI agent. Customers see this name at the end of every reply.</p>
+        </div>
       </div>
 
       <fieldset className="flex flex-col gap-2">
@@ -72,7 +73,7 @@ export function AgentForm({ agentName, preset, customTone }: { agentName: string
 
       <p className="rounded-lg bg-muted px-3 py-2 text-sm">
         <span className="text-muted-foreground">Preview: </span>
-        {name || "Your agent"} will reply in a tone that is <strong>{tone}</strong>.
+        {AGENT_NAME} will reply in a tone that is <strong>{tone}</strong>.
       </p>
 
       {state.error && (

@@ -205,9 +205,13 @@ describe.skipIf(!hasDbEnv)("tenant isolation (RLS, live DB)", () => {
 
     // Safe columns still work for members.
     const ok = must(
-      await userA().from("shops").update({ agent_name: "Nova" }).eq("id", shopA.shopId).select("agent_name"),
+      await userA().from("shops").update({ agent_tone: "calm and caring" }).eq("id", shopA.shopId).select("agent_tone"),
     );
-    expect(ok).toEqual([{ agent_name: "Nova" }]);
+    expect(ok).toEqual([{ agent_tone: "calm and caring" }]);
+
+    // The agent is always "Ava": members can't rename it, and even the service role can't.
+    expect((await userA().from("shops").update({ agent_name: "Nova" }).eq("id", shopA.shopId)).error).not.toBeNull();
+    expect((await admin.from("shops").update({ agent_name: "Nova" }).eq("id", shopA.shopId)).error?.code).toBe("23514");
   });
 
   it("members cannot create or decide action requests, or write usage", async () => {

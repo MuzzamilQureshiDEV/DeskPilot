@@ -41,7 +41,7 @@ export function buildChecklist(s: SetupState, agent: string): ChecklistItem[] {
     },
     {
       id: "tone",
-      title: `Name ${agent} and choose a tone`,
+      title: `Choose ${agent}'s tone`,
       description: "Make replies sound like your brand.",
       done: s.toneChosen,
       href: "/settings",

@@ -16,7 +16,6 @@ export type AgentSettingsState = {
 
 export async function saveAgentSettings(_prev: AgentSettingsState, formData: FormData): Promise<AgentSettingsState> {
   const parsed = agentSettingsSchema.safeParse({
-    agentName: formData.get("agentName"),
     tonePreset: formData.get("tonePreset"),
     customTone: formData.get("customTone") ?? "",
   });
@@ -34,7 +33,6 @@ export async function saveAgentSettings(_prev: AgentSettingsState, formData: For
   const { error } = await supabase
     .from("shops")
     .update({
-      agent_name: parsed.data.agentName,
       agent_tone: toneText(parsed.data.tonePreset, parsed.data.customTone),
       setup: nextSetup,
     })

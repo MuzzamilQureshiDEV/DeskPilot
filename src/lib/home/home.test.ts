@@ -13,7 +13,7 @@ describe("setup checklist", () => {
     expect(items.every((i) => !i.done)).toBe(true);
     expect(items.some((i) => i.comingSoon)).toBe(false);
     expect(checklistProgress(items)).toEqual({ done: 0, total: 6 });
-    expect(items[2]?.title).toBe("Name Ava and choose a tone");
+    expect(items[2]?.title).toBe("Choose Ava's tone");
   });
 
   it("ticks steps off from real state", () => {
@@ -37,18 +37,16 @@ describe("average", () => {
 
 describe("agent settings", () => {
   it("accepts a preset or the merchant's own tone", () => {
-    expect(agentSettingsSchema.safeParse({ agentName: "Nova", tonePreset: "friendly" }).success).toBe(true);
-    expect(agentSettingsSchema.safeParse({ agentName: "Nova", tonePreset: "custom", customTone: "like a surf shop" }).success).toBe(true);
+    expect(agentSettingsSchema.safeParse({ tonePreset: "friendly" }).success).toBe(true);
+    expect(agentSettingsSchema.safeParse({ tonePreset: "custom", customTone: "like a surf shop" }).success).toBe(true);
     expect(toneText("concise", "")).toBe("short, clear and to the point");
     expect(toneText("custom", " relaxed ")).toBe("relaxed");
   });
 
   it.each([
-    ["empty name", { agentName: " ", tonePreset: "friendly" }],
-    ["name with markup", { agentName: "<b>Ava</b>", tonePreset: "friendly" }],
-    ["unknown preset", { agentName: "Ava", tonePreset: "rude" }],
-    ["custom without words", { agentName: "Ava", tonePreset: "custom", customTone: "  " }],
-    ["custom too long", { agentName: "Ava", tonePreset: "custom", customTone: "x".repeat(81) }],
+    ["unknown preset", { tonePreset: "rude" }],
+    ["custom without words", { tonePreset: "custom", customTone: "  " }],
+    ["custom too long", { tonePreset: "custom", customTone: "x".repeat(81) }],
   ])("rejects %s", (_l, input) => {
     expect(agentSettingsSchema.safeParse(input).success).toBe(false);
   });

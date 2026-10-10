@@ -137,7 +137,8 @@
   // Header: avatar + title + online status.
   var header = el("div", "dpc-header");
   var who = el("div", "dpc-who");
-  var agent = (root.getAttribute("data-agent") || "").trim();
+  // The AI agent is always Ava (fixed product-wide).
+  var agent = "Ava";
   var avatar = el("span", "dpc-avatar", agent ? agent.charAt(0).toUpperCase() : "");
   if (!agent) avatar.appendChild(svg("M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6z", 20));
   avatar.appendChild(el("span", "dpc-online"));

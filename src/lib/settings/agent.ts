@@ -11,14 +11,11 @@ export const TONE_PRESETS = [
   { id: "playful", label: "Upbeat", tone: "upbeat and playful, but never flippant" },
 ] as const;
 
+/** The AI agent's fixed name (enforced in the DB by the agent_name_is_ava constraint). */
+export const AGENT_NAME = "Ava";
+
 export const agentSettingsSchema = z
   .object({
-    agentName: z
-      .string()
-      .trim()
-      .min(1, "Give your agent a name")
-      .max(40, "Keep the name under 40 characters")
-      .regex(/^[\p{L}\p{N} .'-]+$/u, "Use letters, numbers, spaces, dots, apostrophes or dashes"),
     tonePreset: z.union([z.enum(TONE_PRESETS.map((t) => t.id) as [string, ...string[]]), z.literal("custom")]),
     customTone: z.string().trim().max(80, "Keep the tone under 80 characters").optional().default(""),
   })

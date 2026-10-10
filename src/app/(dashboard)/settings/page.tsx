@@ -81,7 +81,7 @@ export default async function SettingsPage() {
 
   return (
     <PageShell>
-      <PageHeader title="Settings" description="Your agent's name and tone, email forwarding, and team." />
+      <PageHeader title="Settings" description="Ava's tone, email forwarding, store chat and privacy." />
 
       <Card>
         <CardHeader>
@@ -89,7 +89,7 @@ export default async function SettingsPage() {
           <CardDescription>How your agent introduces itself and sounds in every reply.</CardDescription>
         </CardHeader>
         <CardContent>
-          <AgentForm agentName={shop?.agentName ?? "Ava"} preset={preset} customTone={preset === "custom" ? (shop?.agentTone ?? "") : ""} />
+          <AgentForm preset={preset} customTone={preset === "custom" ? (shop?.agentTone ?? "") : ""} />
         </CardContent>
       </Card>
 
