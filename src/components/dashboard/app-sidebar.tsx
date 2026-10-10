@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useTransition } from "react";
 
 import { signOut } from "@/app/(auth)/actions";
+import { BrandIcon } from "@/components/brand";
 import { openCommandPalette } from "@/components/dashboard/command-palette";
 import { activeNavItem, NAV_GROUPS } from "@/components/dashboard/nav";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -70,9 +71,7 @@ export function AppSidebar({ shopName, email, storeConnected, counts }: AppSideb
               render={<Link href="/home" />}
               tooltip="AstaDesk"
             >
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/70 font-display text-lg text-primary-foreground italic shadow-soft">
-                a
-              </span>
+              <BrandIcon />
               <span className="flex flex-col leading-tight">
                 <span className="font-semibold">AstaDesk</span>
                 <span className="text-xs text-muted-foreground">{displayName}</span>

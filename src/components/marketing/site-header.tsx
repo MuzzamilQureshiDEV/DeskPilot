@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { BrandLogo } from "@/components/brand";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { buttonVariants } from "@/components/ui/button";
 
@@ -7,11 +8,8 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-20 border-b bg-background/90 backdrop-blur">
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-4 px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2 font-semibold">
-          <span className="flex size-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/70 font-display text-lg text-primary-foreground italic shadow-soft">
-            a
-          </span>
-          AstaDesk
+        <Link href="/" aria-label="AstaDesk home" className="flex items-center">
+          <BrandLogo className="h-8" />
         </Link>
         <nav aria-label="Main" className="ml-auto flex items-center gap-1 text-sm sm:gap-2">
           <Link href="/#how-it-works" className="hidden rounded-md px-3 py-2 text-muted-foreground hover:text-foreground sm:block">

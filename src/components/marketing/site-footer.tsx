@@ -5,7 +5,10 @@ export function SiteFooter({ entity }: { entity: string }) {
     <footer className="border-t">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <p>
-          © {new Date().getFullYear()} {entity}. AI customer support for Shopify stores.
+          © {new Date().getFullYear()} {entity}. AI customer support for Shopify stores.{" "}
+          <span className="whitespace-nowrap">
+            A product of <span className="font-medium text-foreground">Websaura</span>.
+          </span>
         </p>
         <nav aria-label="Legal" className="flex gap-4">
           <Link href="/privacy" className="hover:text-foreground">

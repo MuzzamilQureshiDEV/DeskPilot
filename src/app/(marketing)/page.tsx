@@ -93,7 +93,7 @@ export default async function LandingPage() {
         <div className="absolute top-0 left-1/2 -z-10 h-[420px] w-[720px] -translate-x-1/2 rounded-full bg-primary/20 blur-3xl" aria-hidden />
         <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-6 px-4 pt-20 pb-16 text-center sm:px-6 sm:pt-28">
         <span className="rounded-full border bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground">
-          For Shopify merchants · 14-day free trial, no card needed
+          For Shopify merchants · 14-day free trial, no card needed · by Websaura
         </span>
         <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-balance sm:text-6xl">
           Customer support that runs on your store&apos;s{" "}
