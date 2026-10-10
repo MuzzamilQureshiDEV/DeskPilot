@@ -115,5 +115,5 @@ describe.skipIf(!hasDbEnv)("storefront chat (live DB)", () => {
     }
     expect(statuses.slice(0, 10).every((s) => s === "ok")).toBe(true);
     expect(statuses[10]).toBe(429);
-  });
+  }, 90_000); // 11 sequential round trips to the cloud DB
 });
