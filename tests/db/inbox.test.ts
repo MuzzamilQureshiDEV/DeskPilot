@@ -119,9 +119,18 @@ describe.skipIf(!hasDbEnv)("inbox actions (live DB, RLS client)", () => {
     const { conversationId, customerMessageId } = await withDraft();
     // The draft is the AI's answer, so nothing is unanswered.
     expect(await unansweredCustomerMessage(db(), shopA, conversationId)).toBeNull();
+    // "Later" is based on the database's own timestamps (this machine's clock may differ).
+    const { data: last } = await admin
+      .from("messages")
+      .select("created_at")
+      .eq("conversation_id", conversationId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+    const later = new Date(new Date(last!.created_at!).getTime() + 1000).toISOString();
     const { data: next } = await admin
       .from("messages")
-      .insert({ shop_id: shopA, conversation_id: conversationId, role: "customer", status: "received", body: "Hello?", created_at: new Date(Date.now() + 1000).toISOString() })
+      .insert({ shop_id: shopA, conversation_id: conversationId, role: "customer", status: "received", body: "Hello?", created_at: later })
       .select("id")
       .single();
     expect(await unansweredCustomerMessage(db(), shopA, conversationId)).toBe(next?.id);
