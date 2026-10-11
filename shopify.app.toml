@@ -4,7 +4,7 @@
 
 client_id = "c16baae7d25b862c36fa9523b82bb309"
 name = "AstaDesk"
-application_url = "https://deskpilot-seven.vercel.app/api/shopify/install"
+application_url = "https://www.astadesk.com/api/shopify/install"
 embedded = false
 
 [access_scopes]
@@ -13,6 +13,7 @@ use_legacy_install_flow = true
 
 [auth]
 redirect_urls = [
+  "https://www.astadesk.com/api/shopify/callback",
   "https://deskpilot-seven.vercel.app/api/shopify/callback",
   "http://localhost:3000/api/shopify/callback",
 ]
@@ -26,11 +27,11 @@ api_version = "2026-10"
   # Mandatory privacy (GDPR) webhooks.
   [[webhooks.subscriptions]]
   compliance_topics = ["customers/data_request", "customers/redact", "shop/redact"]
-  uri = "https://deskpilot-seven.vercel.app/api/shopify/webhooks"
+  uri = "https://www.astadesk.com/api/shopify/webhooks"
 
 # Storefront chat: {shop}/apps/deskpilot/* → our /api/proxy/* (signed by Shopify).
 [app_proxy]
-url = "https://deskpilot-seven.vercel.app/api/proxy"
+url = "https://www.astadesk.com/api/proxy"
 subpath = "deskpilot"
 prefix = "apps"
 
