@@ -23,7 +23,7 @@ export function SiteHeader() {
             Log in
           </Link>
           <Link href="/signup" className={buttonVariants({ size: "sm" })}>
-            Start free trial
+            Get started
           </Link>
         </nav>
       </div>

@@ -32,7 +32,7 @@ export type SkipReason =
   | "already_answered"
   | "newer_message"
   | "usage_limit"
-  | "trial_ended"
+  | "no_plan"
   | "subscription_inactive";
 
 /** Everything the agent step needs, as plain JSON (Inngest memoises step results). */

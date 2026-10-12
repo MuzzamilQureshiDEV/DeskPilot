@@ -32,7 +32,7 @@ It is a **standalone web app** (our own domain, our own login). Shopify is conne
 | Shopify | Admin GraphQL API (pin one stable API version in `src/lib/shopify/config.ts`) |
 | Email (v1) | Inbound forwarding via Postmark inbound webhook; outbound via Postmark |
 | Email (later) | Gmail API with OAuth + polling |
-| Payments | Stripe (subscriptions + 14-day trial) |
+| Payments | PayPal subscriptions now, Stripe switchable (no free trial) |
 | Validation | Zod (v4) for every external input (webhooks, forms, AI output) |
 | Hosting | Vercel + Supabase cloud |
 | Errors | Sentry |
@@ -170,7 +170,7 @@ create table shops (
   agent_name text not null default 'Ava',
   agent_tone text not null default 'friendly',
   plan plan_tier not null default 'trial',
-  trial_ends_at timestamptz default now() + interval '14 days',
+  trial_ends_at timestamptz default null,   -- unused: there is no free trial
   stripe_customer_id text,
   stripe_subscription_id text,
   setup jsonb not null default '{}'::jsonb,   -- checklist flags
@@ -417,18 +417,18 @@ Test page: preset scenario buttons (cancel order, refund request, return questio
 
 | Plan | AI replies / month | Autopilot | Action workflows |
 |---|---|---|---|
-| trial (14 days) | 25 | no | yes (approval) |
-| starter | 100 | no | yes (approval) |
-| growth | 250 | yes | yes |
-| scale | custom | yes | yes |
+| trial (= "no plan yet") | 0 (Test page sandbox only) | no | — |
+| starter ($52) | 100 | no | yes (approval) |
+| growth ($99) | 250 | yes | yes |
+| scale ($230) | 1,000 (fair use, more on request) | yes | yes |
 
-Prices are configured in Stripe, not hardcoded: Starter $29/mo and Growth $79/mo (found by lookup keys `deskpilot_starter_monthly` / `deskpilot_growth_monthly`), Scale is "Contact us" and set by hand.
+There is **no free trial**: new accounts explore free (dashboard, store connect, policies, Test page), but Ava answers real customers only on a paid plan (`aiAccess` → `no_plan`). All three plans are self-serve "founding prices". Prices live in PayPal plans (`PAYPAL_PLAN_STARTER/GROWTH/SCALE`) or Stripe prices (lookup keys `deskpilot_{starter,growth,scale}_monthly`), never hardcoded; `npm run paypal:setup` / `stripe:setup` set them. Card copy lives in `src/lib/billing/catalog.ts` (real features only).
 
 ---
 
 ## 12. Dashboard pages (MVP set)
 
-- **Home:** trial/usage bar, setup checklist (connect store, add policies, set up email, choose tone, run a test, go live), KPI cards: open conversations, AI replies sent, escalated, pending approvals, resolved, avg confidence.
+- **Home:** plan/usage bar, setup checklist (connect store, add policies, choose tone, run a test, set up email, choose a plan, go live), KPI cards: open conversations, AI replies sent, escalated, pending approvals, resolved, avg confidence.
 - **Inbox:** table (channel, customer, last message, status, sentiment, tags, time), search + status filter, realtime updates.
 - **Conversation detail:** thread, AI draft with confidence + reasoning, buttons: Send, Edit & send, Reject, Take over / Release to AI. Pending action card with Approve / Reject.
 - **Approvals:** all pending action requests across conversations.
@@ -523,6 +523,7 @@ Validated with Zod in `src/lib/env-schema.ts`. Server code reads `serverEnv()` f
 - [ ] Add a working `ANTHROPIC_API_KEY` with API credit, then run `npm run test:ai` (the agent hasn't been run against the live model yet).
 
 ### Decisions log
+- 2026-10-12 (pricing, owner decision): **no free trial**; founding prices Starter $52, Growth $99, Scale $230 (Scale now self-serve, 1,000 AI replies/month fair use so one busy store can't cost more in AI than it pays). The `trial` enum value stays and means "no plan yet" (no risky enum migration); migration `no_trial` sets `trial_ends_at` default to null. `aiAccess` returns `no_plan` for it (replaces `trial_ended`), and `prepareRun` skips with `no_plan`. The Test page sandbox keeps its own daily runs. UI: shared `PricingCards` (landing + Billing, Growth dark "Most popular"), header badge "No plan · Choose a plan", a friendly no-plan banner, and a "Choose a plan" checklist step. PayPal plan prices are fixed, so `paypal:setup` matches plans by name **and** price, creates new ones and deactivates old-price ones; `stripe:setup` moves lookup keys to new prices with `transfer_lookup_key`. Terms §6 updated.
 - 2026-10-12 (PayPal): the owner can't use Stripe yet (no supported business) but has a Malaysian PayPal business account, so billing supports **PayPal subscriptions** (Subscriptions API v1) alongside Stripe. The Billing and landing pages use PayPal when `PAYPAL_*` is configured, otherwise Stripe. Subscribe: our server creates the subscription (`custom_id` = shop id), then the merchant goes to PayPal's approve link. Switching plan uses PayPal's `revise` (re-approval); cancel goes through PayPal's API, and access stays until `current_period_end`. `aiAccess` keeps a cancelled-but-paid plan on for both providers. Webhook `/api/paypal/webhook`: the event is verified with PayPal's `verify-webhook-signature` (our `PAYPAL_WEBHOOK_ID`), claimed in `payment_events`, the subscription re-fetched, and the shop found by `paypal_subscription_id` or `custom_id`. A stale or old subscription can't cancel a newer one, and a pending one can't replace a live one. Status mapping: ACTIVE→active, SUSPENDED→past_due, CANCELLED/EXPIRED→canceled, else incomplete. New columns `billing_provider` and `paypal_subscription_id` are read-only for browsers.
 - 2026-10-11: custom domain **www.astadesk.com** (bought at Hostinger, DNS at Hostinger: A `@` → 216.198.79.1, CNAME `www` → 558a740981a70818.vercel-dns-017.com). Vercel serves www as the main domain, and the apex 308-redirects to www. Webhooks must use the non-redirecting host, so everything points at `https://www.astadesk.com`: the Shopify app URL, redirect and app proxy (astadesk-7; the old vercel.app callback stays allowed), compliance webhooks, the Postmark InboundHookUrl, the Stripe webhook endpoint (same id and secret) and the Inngest sync. Set `NEXT_PUBLIC_APP_URL=https://www.astadesk.com` in Vercel. deskpilot-seven.vercel.app keeps working.
 - 2026-10-11: brand assets live in `public/brand/`: the `astadesk-icon.svg` headset-robot mark (also `src/app/icon.svg`, the favicon), the `astadesk-logo.svg` wordmark and `astadesk-logo-dark.svg` (derived: light text, no background box). The embedded C2PA provenance blocks were stripped from the provided files. `BrandIcon` / `BrandLogo` live in `src/components/brand.tsx`. AstaDesk is **a product of Websaura** (site footer and hero badge).

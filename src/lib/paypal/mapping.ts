@@ -17,9 +17,10 @@ export function statusFromPayPal(status: string): string {
   }
 }
 
-export function planFromPayPal(planId: string, plans: { starter: string; growth: string }): SelfServePlan | null {
+export function planFromPayPal(planId: string, plans: { starter: string; growth: string; scale?: string }): SelfServePlan | null {
   if (planId === plans.starter) return "starter";
   if (planId === plans.growth) return "growth";
+  if (plans.scale && planId === plans.scale) return "scale";
   return null;
 }
 

@@ -1,7 +1,8 @@
 // One-time PayPal setup (safe to re-run). Creates, in the PayPal account of the
 // given credentials:
 //   - the "AstaDesk" product
-//   - monthly plans "AstaDesk Starter" ($29) and "AstaDesk Growth" ($79)
+//   - monthly plans "AstaDesk Starter" ($52), "AstaDesk Growth" ($99), "AstaDesk Scale" ($230)
+//     (a price change creates a new plan and deactivates the old one)
 //   - the webhook for subscription + payment events
 // Prints the env values to save (plan ids, webhook id). Never prints secrets.
 //
@@ -29,8 +30,9 @@ const EVENTS = [
   "PAYMENT.SALE.COMPLETED",
 ];
 const PLANS = [
-  { key: "STARTER", name: "AstaDesk Starter", description: "100 AI replies a month", price: "29.00" },
-  { key: "GROWTH", name: "AstaDesk Growth", description: "250 AI replies a month, autopilot", price: "79.00" },
+  { key: "STARTER", name: "AstaDesk Starter", description: "100 AI replies a month", price: "52.00" },
+  { key: "GROWTH", name: "AstaDesk Growth", description: "250 AI replies a month, autopilot", price: "99.00" },
+  { key: "SCALE", name: "AstaDesk Scale", description: "1,000 AI replies a month, full autopilot", price: "230.00" },
 ];
 
 const tokenRes = await fetch(`${BASE}/v1/oauth2/token`, {
@@ -68,10 +70,20 @@ else {
 
 // 2. Plans
 type Plan = { id: string; name: string; status: string };
+type PlanDetail = Plan & { billing_cycles?: { pricing_scheme?: { fixed_price?: { value: string } } }[] };
 const existing = await api<{ plans?: Plan[] }>(`/v1/billing/plans?product_id=${product.id}&page_size=20`);
+const priceOf = async (id: string) => Number((await api<PlanDetail>(`/v1/billing/plans/${id}`)).billing_cycles?.[0]?.pricing_scheme?.fixed_price?.value ?? 0);
 const planIds: Record<string, string> = {};
 for (const p of PLANS) {
-  let plan = existing.plans?.find((x) => x.name === p.name && x.status === "ACTIVE");
+  let plan: Plan | undefined;
+  for (const x of existing.plans?.filter((x) => x.name === p.name && x.status === "ACTIVE") ?? []) {
+    if ((await priceOf(x.id)) === Number(p.price)) plan = x;
+    else {
+      // Old price: stop offering it (existing subscribers keep their plan).
+      await api(`/v1/billing/plans/${x.id}/deactivate`, "POST");
+      console.log(`- deactivated old ${p.name} plan ${x.id}`);
+    }
+  }
   if (plan) console.log(`✓ plan ${p.name} ${plan.id}`);
   else {
     plan = await api<Plan>("/v1/billing/plans", "POST", {
@@ -103,4 +115,5 @@ console.log("\nSave these:");
 console.log(`PAYPAL_ENV=${live ? "live" : "sandbox"}`);
 console.log(`PAYPAL_PLAN_STARTER=${planIds.STARTER}`);
 console.log(`PAYPAL_PLAN_GROWTH=${planIds.GROWTH}`);
+console.log(`PAYPAL_PLAN_SCALE=${planIds.SCALE}`);
 console.log(`PAYPAL_WEBHOOK_ID=${hook.id}`);

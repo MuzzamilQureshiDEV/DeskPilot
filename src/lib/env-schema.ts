@@ -46,6 +46,7 @@ export const serverEnvSchema = publicEnvSchema.extend({
   PAYPAL_WEBHOOK_ID: z.string().min(5).optional(),
   PAYPAL_PLAN_STARTER: z.string().startsWith("P-").optional(),
   PAYPAL_PLAN_GROWTH: z.string().startsWith("P-").optional(),
+  PAYPAL_PLAN_SCALE: z.string().startsWith("P-").optional(),
   /** Legal pages (Privacy Policy, Terms). */
   LEGAL_ENTITY_NAME: z.string().min(1).max(200).default("AstaDesk"),
   LEGAL_CONTACT_EMAIL: z.email().optional(),

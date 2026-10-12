@@ -26,7 +26,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
             href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"}
             className="font-medium text-primary hover:underline"
           >
-            Start a free trial
+            Create an account
           </Link>
         </p>
       </CardContent>

@@ -16,13 +16,8 @@ export function billingSummary(
 ): BillingSummary {
   const plan = planOf(shop.plan);
   if (plan === "trial") {
-    if (!shop.trialEndsAt) return { label: "Free trial", tone: "ok", detail: "Choose a plan whenever you're ready." };
-    const days = Math.ceil((new Date(shop.trialEndsAt).getTime() - now.getTime()) / 86_400_000);
-    return days > 0
-      ? { label: "Free trial", tone: days <= 3 ? "warn" : "ok", detail: `${days} day${days === 1 ? "" : "s"} left. Ends ${fmt(shop.trialEndsAt)}.` }
-      : { label: "Trial ended", tone: "bad", detail: "Choose a plan to turn the AI back on." };
+    return { label: "No plan yet", tone: "warn", detail: "Choose a plan so Ava can reply to your customers. Exploring and the sample store are free." };
   }
-  if (plan === "scale") return { label: "Active", tone: "ok", detail: "Custom plan. Contact us to make changes." };
 
   switch (shop.subscriptionStatus) {
     case "active":

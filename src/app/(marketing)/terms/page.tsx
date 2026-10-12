@@ -80,8 +80,8 @@ export default function TermsPage() {
       <section>
         <h2>6. Trial, plans and payment</h2>
         <ul>
-          <li>New accounts get a 14-day free trial with no card. When it ends, AI replies pause until you choose a plan.</li>
-          <li>Paid plans are billed monthly in advance through Stripe and renew automatically until cancelled.</li>
+          <li>There is no free trial. You can create an account, explore the dashboard and test AstaDesk on a sample store for free; AI replies to real customers start once you choose a paid plan.</li>
+          <li>Plans are billed monthly in advance through our payment provider (PayPal or Stripe) and renew automatically until cancelled. Founding prices stay the same for as long as your subscription stays active.</li>
           <li>Each plan includes a number of AI replies per billing period. When it&apos;s used up, messages still arrive but AI replies pause until the next period or an upgrade.</li>
           <li>
             You can cancel anytime in Billing. Cancellation takes effect at the end of the paid period, and we don&apos;t refund

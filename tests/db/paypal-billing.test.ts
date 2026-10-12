@@ -8,7 +8,7 @@ import { handlePayPalEvent, type PayPalWebhookDeps } from "@/lib/paypal/webhook"
 
 import { adminClient, createTestUser, deleteTestUser, hasDbEnv, type Db, type TestUser } from "./helpers";
 
-const plans = { starter: "P-STARTER-TEST", growth: "P-GROWTH-TEST" };
+const plans = { starter: "P-STARTER-TEST", growth: "P-GROWTH-TEST", scale: "P-SCALE-TEST" };
 const iso = (days: number) => new Date(Date.now() + days * 86_400_000).toISOString();
 
 function sub(over: Partial<PayPalSubscription> & { id: string }): PayPalSubscription {
@@ -71,6 +71,10 @@ describe.skipIf(!hasDbEnv)("PayPal billing webhook (live DB)", () => {
   });
 
   it("follows a plan switch and keeps the AI on while a payment is retried", async () => {
+    await handlePayPalEvent(admin, event("BILLING.SUBSCRIPTION.UPDATED", subA), deps(sub({ id: subA, plan_id: plans.starter })));
+    expect((await row(shopA)).plan).toBe("starter");
+    await handlePayPalEvent(admin, event("BILLING.SUBSCRIPTION.UPDATED", subA), deps(sub({ id: subA, plan_id: plans.scale })));
+    expect((await row(shopA)).plan).toBe("scale");
     await handlePayPalEvent(admin, event("BILLING.SUBSCRIPTION.UPDATED", subA), deps(sub({ id: subA, plan_id: plans.starter })));
     expect((await row(shopA)).plan).toBe("starter");
     await handlePayPalEvent(admin, event("BILLING.SUBSCRIPTION.SUSPENDED", subA), deps(sub({ id: subA, plan_id: plans.starter, status: "SUSPENDED" })));

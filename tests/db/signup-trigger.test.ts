@@ -33,7 +33,7 @@ describe.skipIf(!hasDbEnv)("signup creates a shop (live DB)", () => {
 
     const members = await admin
       .from("shop_members")
-      .select("shop_id, role, shops(name, agent_name, plan)")
+      .select("shop_id, role, shops(name, agent_name, plan, trial_ends_at)")
       .eq("user_id", owner.id);
     expect(members.error).toBeNull();
     expect(members.data).toHaveLength(1);
@@ -44,7 +44,9 @@ describe.skipIf(!hasDbEnv)("signup creates a shop (live DB)", () => {
     expect(member.shops).toEqual({
       name: "Trigger Test Store",
       agent_name: "Ava",
+      // "trial" = no plan yet; there is no free trial, so no end date.
       plan: "trial",
+      trial_ends_at: null,
     });
 
     const settings = await admin

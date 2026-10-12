@@ -10,18 +10,18 @@ export type PayPalConfig = {
   clientId: string;
   secret: string;
   webhookId: string | null;
-  plans: { starter: string; growth: string };
+  plans: { starter: string; growth: string; scale: string };
 };
 
 export function paypalConfig(): PayPalConfig | null {
   const e = serverEnv();
-  if (!e.PAYPAL_CLIENT_ID || !e.PAYPAL_CLIENT_SECRET || !e.PAYPAL_PLAN_STARTER || !e.PAYPAL_PLAN_GROWTH) return null;
+  if (!e.PAYPAL_CLIENT_ID || !e.PAYPAL_CLIENT_SECRET || !e.PAYPAL_PLAN_STARTER || !e.PAYPAL_PLAN_GROWTH || !e.PAYPAL_PLAN_SCALE) return null;
   return {
     base: e.PAYPAL_ENV === "live" ? "https://api-m.paypal.com" : "https://api-m.sandbox.paypal.com",
     clientId: e.PAYPAL_CLIENT_ID,
     secret: e.PAYPAL_CLIENT_SECRET,
     webhookId: e.PAYPAL_WEBHOOK_ID ?? null,
-    plans: { starter: e.PAYPAL_PLAN_STARTER, growth: e.PAYPAL_PLAN_GROWTH },
+    plans: { starter: e.PAYPAL_PLAN_STARTER, growth: e.PAYPAL_PLAN_GROWTH, scale: e.PAYPAL_PLAN_SCALE },
   };
 }
 

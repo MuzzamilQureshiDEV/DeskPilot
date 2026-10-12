@@ -1,33 +1,37 @@
-// Plan limits (CLAUDE.md §11). Prices live in Stripe (found by lookup key), not here.
+// Plan limits (CLAUDE.md §11). Prices live in PayPal / Stripe, never here.
+// "trial" is the internal value for "no plan yet" (there is no free trial):
+// the dashboard and sandbox work, but Ava doesn't answer real customers.
 
 export const PLAN_TIERS = ["trial", "starter", "growth", "scale"] as const;
 export type PlanTier = (typeof PLAN_TIERS)[number];
 
 type PlanLimits = {
-  /** AI replies per billing period; null means no limit (scale is "custom"). */
+  /** AI replies per billing period; null means no limit. */
   aiRepliesPerMonth: number | null;
   autopilot: boolean;
 };
 
 export const PLANS: Record<PlanTier, PlanLimits> = {
-  trial: { aiRepliesPerMonth: 25, autopilot: false },
+  trial: { aiRepliesPerMonth: 0, autopilot: false },
   starter: { aiRepliesPerMonth: 100, autopilot: false },
   growth: { aiRepliesPerMonth: 250, autopilot: true },
-  scale: { aiRepliesPerMonth: null, autopilot: true },
+  // Fair use: protects against one very busy store costing more in AI than it pays.
+  scale: { aiRepliesPerMonth: 1000, autopilot: true },
 };
 
 export function planOf(value: string): PlanTier {
   return PLAN_TIERS.find((p) => p === value) ?? "trial";
 }
 
-/** Plans merchants can buy themselves (scale is arranged by hand). */
-export const SELF_SERVE_PLANS = ["starter", "growth"] as const;
+/** Plans merchants can buy themselves. */
+export const SELF_SERVE_PLANS = ["starter", "growth", "scale"] as const;
 export type SelfServePlan = (typeof SELF_SERVE_PLANS)[number];
 
 /** Stripe price lookup keys (set by `npm run stripe:setup`). */
 export const PRICE_LOOKUP_KEYS: Record<SelfServePlan, string> = {
   starter: "deskpilot_starter_monthly",
   growth: "deskpilot_growth_monthly",
+  scale: "deskpilot_scale_monthly",
 };
 
 export function planForPrice(lookupKey: string | null | undefined): SelfServePlan | null {
@@ -46,7 +50,7 @@ export type BillingState = {
   currentPeriodEnd?: string | null;
 };
 
-const isPaid = (plan: PlanTier) => plan === "starter" || plan === "growth";
+const isPaid = (plan: PlanTier) => plan !== "trial";
 
 /**
  * Start of the current usage period: the Stripe billing period for paid plans,
@@ -62,14 +66,12 @@ export function usagePeriodStart(now: Date, shop?: BillingState): Date {
 
 export type AiAccess =
   | { allowed: true; remaining: number | null }
-  | { allowed: false; reason: "usage_limit" | "trial_ended" | "subscription_inactive" };
+  | { allowed: false; reason: "usage_limit" | "no_plan" | "subscription_inactive" };
 
 /** Whether the AI may process another message (rule 7: stored but not processed when over). */
 export function aiAccess(shop: BillingState, usedThisPeriod: number, now: Date): AiAccess {
   const plan = planOf(shop.plan);
-  if (plan === "trial" && shop.trialEndsAt && new Date(shop.trialEndsAt) <= now) {
-    return { allowed: false, reason: "trial_ended" };
-  }
+  if (plan === "trial") return { allowed: false, reason: "no_plan" };
   const paidUntil = shop.currentPeriodEnd ? new Date(shop.currentPeriodEnd) : null;
   const stillPaidFor = shop.subscriptionStatus === "canceled" && paidUntil !== null && paidUntil > now;
   if (isPaid(plan) && shop.subscriptionStatus && INACTIVE_STATUSES.has(shop.subscriptionStatus) && !stillPaidFor) {

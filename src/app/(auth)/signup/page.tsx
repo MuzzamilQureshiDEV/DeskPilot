@@ -19,8 +19,8 @@ export default async function SignupPage({ searchParams }: PageProps<"/signup">)
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Start your free trial</CardTitle>
-        <CardDescription>14 days free. No card needed.</CardDescription>
+        <CardTitle>Create your account</CardTitle>
+        <CardDescription>Explore free and test Ava on a sample store. Choose a plan when you&apos;re ready for Ava to reply to customers.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {shopDomain && (

@@ -79,6 +79,8 @@ describe.skipIf(!hasDbEnv)(`load: ${SHOPS} shops × ${MESSAGES} messages`, () =>
       if (error) throw error;
       users.push(data.user.id);
       const { data: member } = await admin.from("shop_members").select("shop_id").eq("user_id", data.user.id).single();
+      // A paid plan, so Ava answers (a shop with no plan gets no AI replies).
+      await admin.from("shops").update({ plan: "growth", subscription_status: "active" }).eq("id", member!.shop_id);
       const { data: shop } = await admin.from("shops").select("id, inbound_hash").eq("id", member!.shop_id).single();
       shops.push({ id: shop!.id, hash: shop!.inbound_hash });
     });

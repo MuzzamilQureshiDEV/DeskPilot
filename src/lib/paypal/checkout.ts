@@ -20,7 +20,7 @@ export const loadPayPalPrices = cache(async (): Promise<PayPalPrice[]> => {
   if (!cfg) return [];
   try {
     const out: PayPalPrice[] = [];
-    for (const plan of ["starter", "growth"] as const) {
+    for (const plan of ["starter", "growth", "scale"] as const) {
       const p = await paypalFetch<PlanDetails>(cfg, `/v1/billing/plans/${cfg.plans[plan]}`);
       const cycle = p.billing_cycles?.find((c) => c.tenure_type === "REGULAR");
       const price = cycle?.pricing_scheme?.fixed_price;

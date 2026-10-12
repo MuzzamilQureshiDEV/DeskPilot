@@ -8,10 +8,12 @@ export type SetupState = {
   toneChosen: boolean;
   testRuns: number;
   live: boolean;
+  /** Has a paid plan (Ava only answers real customers then). */
+  subscribed: boolean;
 };
 
 export type ChecklistItem = {
-  id: "store" | "policies" | "email" | "tone" | "test" | "live";
+  id: "store" | "policies" | "email" | "tone" | "test" | "plan" | "live";
   title: string;
   description: string;
   done: boolean;
@@ -62,6 +64,14 @@ export function buildChecklist(s: SetupState, agent: string): ChecklistItem[] {
       done: s.emailConnected,
       href: "/settings",
       cta: "Set up email",
+    },
+    {
+      id: "plan",
+      title: "Choose a plan",
+      description: `Turn ${agent} on for real customers. Founding prices for early stores.`,
+      done: s.subscribed,
+      href: "/billing",
+      cta: "See plans",
     },
     {
       id: "live",

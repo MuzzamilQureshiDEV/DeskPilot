@@ -13,7 +13,7 @@ type Db = SupabaseClient<Database>;
 export type PayPalEvent = { id: string; event_type: string; resource?: Record<string, unknown> };
 export type PayPalWebhookDeps = {
   getSubscription: (id: string) => Promise<PayPalSubscription>;
-  plans: { starter: string; growth: string };
+  plans: { starter: string; growth: string; scale?: string };
 };
 export type PayPalWebhookResult =
   | { status: "processed"; shopId: string }

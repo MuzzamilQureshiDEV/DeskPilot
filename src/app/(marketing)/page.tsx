@@ -15,13 +15,11 @@ import {
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { PricingCards } from "@/components/billing/pricing-cards";
 import { buttonVariants } from "@/components/ui/button";
-import { PLANS } from "@/lib/billing/plans";
-import { formatPrice } from "@/lib/billing/status";
 import { paypalConfig } from "@/lib/paypal/client";
 import { loadPayPalPrices } from "@/lib/paypal/checkout";
 import { loadPrices } from "@/lib/stripe/checkout";
-import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "AstaDesk · AI customer support for Shopify stores",
@@ -65,29 +63,13 @@ const FAQ = [
     a: "The store chat is labelled as an AI assistant, and a person can take over any conversation at any time.",
   },
   {
-    q: "What happens after the free trial?",
-    a: "The 14-day trial needs no card. Afterwards, choose a plan to keep the AI running. New messages still arrive in your inbox either way.",
+    q: "Can I try it before paying?",
+    a: "Yes. Create an account for free, connect your store, add your policies and test Ava on a sample store. Choose a plan when you're ready for Ava to reply to real customers.",
   },
 ];
 
 export default async function LandingPage() {
   const prices = paypalConfig() ? await loadPayPalPrices() : await loadPrices();
-  const priceOf = (plan: "starter" | "growth") => prices.find((p) => p.plan === plan);
-  const tiers = [
-    {
-      name: "Starter",
-      price: priceOf("starter"),
-      features: [`${PLANS.starter.aiRepliesPerMonth} AI replies a month`, "Refunds and edits with your approval", "Email + store chat"],
-    },
-    {
-      name: "Growth",
-      price: priceOf("growth"),
-      featured: true,
-      features: [`${PLANS.growth.aiRepliesPerMonth} AI replies a month`, "Autopilot for routine questions", "Everything in Starter"],
-    },
-    { name: "Scale", price: null, features: ["Unlimited AI replies", "Autopilot", "Custom setup and priority support"] },
-  ];
-
   return (
     <>
       <section className="relative isolate overflow-hidden">
@@ -95,7 +77,7 @@ export default async function LandingPage() {
         <div className="absolute top-0 left-1/2 -z-10 h-[420px] w-[720px] -translate-x-1/2 rounded-full bg-primary/20 blur-3xl" aria-hidden />
         <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-6 px-4 pt-20 pb-16 text-center sm:px-6 sm:pt-28">
         <span className="rounded-full border bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground">
-          For Shopify merchants · 14-day free trial, no card needed · by Websaura
+          For Shopify merchants · founding prices for early customers · by Websaura
         </span>
         <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-balance sm:text-6xl">
           Customer support that runs on your store&apos;s{" "}
@@ -107,7 +89,7 @@ export default async function LandingPage() {
         </p>
         <div className="flex flex-wrap justify-center gap-3">
           <Link href="/signup" className={buttonVariants({ size: "lg" })}>
-            Start free trial
+            Get started
             <ArrowRight aria-hidden />
           </Link>
           <Link href="#how-it-works" className={buttonVariants({ size: "lg", variant: "outline" })}>
@@ -187,44 +169,25 @@ export default async function LandingPage() {
 
       <section id="pricing" className="scroll-mt-20 border-y bg-muted/30">
         <div className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6">
-          <h2 className="text-center text-2xl font-semibold tracking-tight sm:text-3xl">Simple monthly plans</h2>
-          <p className="mt-2 text-center text-muted-foreground">Start with 14 days free and 25 AI replies. Cancel anytime.</p>
-          <div className="mt-10 grid gap-6 md:grid-cols-3">
-            {tiers.map((tier) => (
-              <div
-                key={tier.name}
-                className={cn("flex flex-col gap-4 rounded-xl border bg-background p-6", tier.featured && "border-primary shadow-sm")}
-              >
-                <div className="flex items-center gap-2">
-                  <h3 className="font-semibold">{tier.name}</h3>
-                  {tier.featured && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">Most popular</span>}
-                </div>
-                <p>
-                  {tier.price ? (
-                    <>
-                      <span className="text-3xl font-semibold">{formatPrice(tier.price.amount, tier.price.currency)}</span>
-                      <span className="text-muted-foreground"> / {tier.price.interval}</span>
-                    </>
-                  ) : (
-                    <span className="text-3xl font-semibold">{tier.name === "Scale" ? "Custom" : "—"}</span>
-                  )}
-                </p>
-                <ul className="flex flex-col gap-2 text-sm">
-                  {tier.features.map((f) => (
-                    <li key={f} className="flex gap-2">
-                      <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
+          <h2 className="text-center text-2xl font-semibold tracking-tight sm:text-3xl">Founding prices for early customers</h2>
+          <p className="mt-2 text-center text-muted-foreground">Lock in these prices while founding spots last. Cancel anytime.</p>
+          <div className="mt-10">
+            <PricingCards
+              prices={prices}
+              cta={(plan) => (
                 <Link
                   href="/signup"
-                  className={buttonVariants({ variant: tier.featured ? "default" : "outline", className: "mt-auto" })}
+                  className={buttonVariants({
+                    size: "lg",
+                    variant: plan === "growth" ? "default" : "outline",
+                    className: "w-full",
+                  })}
                 >
-                  {tier.name === "Scale" ? "Start free, then talk to us" : "Start free trial"}
+                  Claim your founding spot
+                  <ArrowRight aria-hidden />
                 </Link>
-              </div>
-            ))}
+              )}
+            />
           </div>
         </div>
       </section>
@@ -253,7 +216,7 @@ export default async function LandingPage() {
         <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Give your team its evenings back</h2>
         <p className="max-w-xl opacity-90">Connect your store, try the agent on a sample store, and go live when you&apos;re happy.</p>
         <Link href="/signup" className={buttonVariants({ size: "lg", variant: "secondary" })}>
-          Start free trial
+          Get started
         </Link>
       </section>
     </>

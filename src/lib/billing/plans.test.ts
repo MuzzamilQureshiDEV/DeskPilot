@@ -8,10 +8,11 @@ const future = "2026-10-16T00:00:00Z";
 
 describe("plans", () => {
   it("match the spec's limits", () => {
-    expect(PLANS.trial).toEqual({ aiRepliesPerMonth: 25, autopilot: false });
+    // "trial" = no plan yet: no AI replies for real customers.
+    expect(PLANS.trial).toEqual({ aiRepliesPerMonth: 0, autopilot: false });
     expect(PLANS.starter).toEqual({ aiRepliesPerMonth: 100, autopilot: false });
     expect(PLANS.growth).toEqual({ aiRepliesPerMonth: 250, autopilot: true });
-    expect(PLANS.scale.autopilot).toBe(true);
+    expect(PLANS.scale).toEqual({ aiRepliesPerMonth: 1000, autopilot: true });
     expect(planOf("enterprise")).toBe("trial");
   });
 
@@ -20,19 +21,16 @@ describe("plans", () => {
   });
 
   it("allows AI until the plan limit, then stops", () => {
-    expect(aiAccess({ plan: "trial", trialEndsAt: future }, 24, NOW)).toEqual({ allowed: true, remaining: 1 });
-    expect(aiAccess({ plan: "trial", trialEndsAt: future }, 25, NOW)).toEqual({ allowed: false, reason: "usage_limit" });
+    expect(aiAccess({ plan: "starter", trialEndsAt: null }, 99, NOW)).toEqual({ allowed: true, remaining: 1 });
+    expect(aiAccess({ plan: "starter", trialEndsAt: null }, 100, NOW)).toEqual({ allowed: false, reason: "usage_limit" });
     expect(aiAccess({ plan: "growth", trialEndsAt: null }, 249, NOW).allowed).toBe(true);
-    expect(aiAccess({ plan: "scale", trialEndsAt: null }, 1_000_000, NOW)).toEqual({ allowed: true, remaining: null });
+    expect(aiAccess({ plan: "scale", trialEndsAt: null }, 999, NOW)).toEqual({ allowed: true, remaining: 1 });
+    expect(aiAccess({ plan: "scale", trialEndsAt: null }, 1000, NOW)).toEqual({ allowed: false, reason: "usage_limit" });
   });
 
-  it("stops AI when the trial has ended", () => {
-    expect(aiAccess({ plan: "trial", trialEndsAt: "2026-10-01T00:00:00Z" }, 0, NOW)).toEqual({
-      allowed: false,
-      reason: "trial_ended",
-    });
-    // Paid plans aren't affected by an old trial date.
-    expect(aiAccess({ plan: "starter", trialEndsAt: "2026-10-01T00:00:00Z" }, 0, NOW).allowed).toBe(true);
+  it("no plan means no AI replies for real customers (there is no free trial)", () => {
+    expect(aiAccess({ plan: "trial", trialEndsAt: null }, 0, NOW)).toEqual({ allowed: false, reason: "no_plan" });
+    expect(aiAccess({ plan: "trial", trialEndsAt: future }, 0, NOW)).toEqual({ allowed: false, reason: "no_plan" });
   });
 });
 
@@ -42,6 +40,7 @@ describe("Stripe billing state", () => {
   it("maps Stripe price lookup keys to plans", () => {
     expect(planForPrice("deskpilot_starter_monthly")).toBe("starter");
     expect(planForPrice("deskpilot_growth_monthly")).toBe("growth");
+    expect(planForPrice("deskpilot_scale_monthly")).toBe("scale");
     expect(planForPrice("something_else")).toBeNull();
     expect(planForPrice(null)).toBeNull();
   });
@@ -53,8 +52,9 @@ describe("Stripe billing state", () => {
     for (const s of ["canceled", "unpaid", "incomplete", "incomplete_expired", "paused"]) {
       expect(aiAccess(paid(s), 0, NOW)).toEqual({ allowed: false, reason: "subscription_inactive" });
     }
-    // Scale is arranged by hand, so a stray status doesn't switch it off.
-    expect(aiAccess({ plan: "scale", trialEndsAt: null, subscriptionStatus: "canceled" }, 0, NOW).allowed).toBe(true);
+    // Scale is a normal subscription now; one set by hand (no subscription status) stays on.
+    expect(aiAccess({ plan: "scale", trialEndsAt: null, subscriptionStatus: "canceled" }, 0, NOW).allowed).toBe(false);
+    expect(aiAccess({ plan: "scale", trialEndsAt: null }, 0, NOW).allowed).toBe(true);
   });
 
   it("counts paid usage from the Stripe billing period", () => {
@@ -70,9 +70,7 @@ describe("Stripe billing state", () => {
 
 describe("billing summary", () => {
   it("describes each state in plain words", () => {
-    expect(billingSummary({ plan: "trial", trialEndsAt: "2026-10-14T12:00:00Z" }, NOW)).toMatchObject({ label: "Free trial", tone: "ok" });
-    expect(billingSummary({ plan: "trial", trialEndsAt: "2026-10-06T12:00:00Z" }, NOW)).toMatchObject({ tone: "warn", detail: expect.stringContaining("2 days left") });
-    expect(billingSummary({ plan: "trial", trialEndsAt: "2026-10-01T00:00:00Z" }, NOW).label).toBe("Trial ended");
+    expect(billingSummary({ plan: "trial", trialEndsAt: null }, NOW)).toMatchObject({ label: "No plan yet", tone: "warn" });
     expect(
       billingSummary({ plan: "growth", trialEndsAt: null, subscriptionStatus: "active", currentPeriodEnd: "2026-11-04T00:00:00Z" }, NOW).detail,
     ).toBe("Renews on November 4, 2026.");
@@ -87,7 +85,8 @@ describe("billing summary", () => {
   });
 
   it("formats Stripe amounts", () => {
-    expect(formatPrice(2900, "usd")).toBe("$29");
+    expect(formatPrice(5200, "usd")).toBe("$52");
+    expect(formatPrice(23000, "usd")).toBe("$230");
     expect(formatPrice(7950, "usd")).toBe("$79.50");
   });
 });

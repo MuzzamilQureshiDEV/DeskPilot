@@ -90,6 +90,7 @@ export default async function HomePage() {
       toneChosen: flag(shopRow?.setup, "tone_chosen"),
       testRuns: testRuns ?? 0,
       live: (delivered ?? 0) > 0,
+      subscribed: shop.plan !== "trial",
     },
     agent,
   );
@@ -100,8 +101,6 @@ export default async function HomePage() {
   const plan = planOf(shop.plan);
   const limit = PLANS[plan].aiRepliesPerMonth;
   const access = aiAccess(shop, used, now);
-  const trialDays =
-    plan === "trial" && shop.trialEndsAt ? Math.max(0, Math.ceil((new Date(shop.trialEndsAt).getTime() - now.getTime()) / 86_400_000)) : null;
   const usedPct = limit ? Math.min(100, Math.round((used / limit) * 100)) : 0;
 
   const waiting = stats.escalated + stats.pendingApprovals + stats.draftsToReview;
@@ -317,15 +316,28 @@ export default async function HomePage() {
         <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-1">
             <span className="text-sm font-medium">
-              <span className="capitalize">{plan}</span> plan
-              {trialDays !== null && ` · ${trialDays === 0 ? "trial ended" : `${trialDays} day${trialDays === 1 ? "" : "s"} left in your trial`}`}
+              {plan === "trial" ? (
+                "No plan yet · choose one so Ava can reply to customers"
+              ) : (
+                <>
+                  <span className="capitalize">{plan}</span> plan
+                </>
+              )}
             </span>
             <span className="text-xs text-muted-foreground">
-              {limit === null ? `${used} AI replies this period` : `${used} of ${limit} AI replies used this period`}
-              {!access.allowed && ` · ${agent} is paused until you upgrade`}
+              {plan === "trial"
+                ? "Founding prices for early stores. Exploring and the sample store stay free."
+                : limit === null
+                  ? `${used} AI replies this period`
+                  : `${used} of ${limit} AI replies used this period`}
+              {plan !== "trial" && !access.allowed && ` · ${agent} is paused until you upgrade`}
             </span>
           </div>
-          {limit !== null && (
+          {plan === "trial" ? (
+            <Link href="/billing" className={buttonVariants({ size: "sm" })}>
+              See plans
+            </Link>
+          ) : limit !== null && (
             <div className="flex items-center gap-3 sm:w-72">
               <div
                 role="progressbar"

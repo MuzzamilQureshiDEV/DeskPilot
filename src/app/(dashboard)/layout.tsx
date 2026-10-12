@@ -12,7 +12,6 @@ import { LiveRefresh } from "@/components/dashboard/live-refresh";
 import { loadAiAccess } from "@/lib/billing/usage";
 import { createClient } from "@/lib/supabase/server";
 
-const dateFormat = new Intl.DateTimeFormat("en", { month: "short", day: "numeric" });
 
 export default async function DashboardLayout({ children }: LayoutProps<"/">) {
   const user = await requireUser();
@@ -49,18 +48,27 @@ export default async function DashboardLayout({ children }: LayoutProps<"/">) {
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4 data-vertical:self-center" />
           <PageTitle />
-          {shop?.plan === "trial" && shop.trialEndsAt && (
-            <Badge variant="secondary" className="ml-auto">
-              Trial ends {dateFormat.format(new Date(shop.trialEndsAt))}
-            </Badge>
+          {shop?.plan === "trial" && (
+            <Link href="/billing" className="ml-auto">
+              <Badge variant="secondary">No plan · Choose a plan</Badge>
+            </Link>
           )}
         </header>
-        {access && !access.allowed && (
+        {access && !access.allowed && access.reason === "no_plan" && (
+          <div role="status" className="flex flex-wrap items-center justify-between gap-2 border-b bg-primary/10 px-4 py-2 text-sm">
+            <span>
+              Choose a plan so {shop?.agentName ?? "Ava"} can reply to your customers. You can explore and test{" "}
+              {shop?.agentName ?? "Ava"} on the sample store for free.
+            </span>
+            <Link href="/billing" className="font-medium text-primary underline underline-offset-2">
+              See plans
+            </Link>
+          </div>
+        )}
+        {access && !access.allowed && access.reason !== "no_plan" && (
           <div role="alert" className="flex flex-wrap items-center justify-between gap-2 border-b bg-destructive/10 px-4 py-2 text-sm text-destructive">
             <span>
-              {access.reason === "trial_ended"
-                ? "Your free trial has ended."
-                : access.reason === "subscription_inactive"
+              {access.reason === "subscription_inactive"
                   ? "Your subscription isn't active."
                   : "You've used all your AI replies for this billing period."}{" "}
               New messages still arrive, but {shop?.agentName ?? "your agent"} won&apos;t draft replies until{" "}

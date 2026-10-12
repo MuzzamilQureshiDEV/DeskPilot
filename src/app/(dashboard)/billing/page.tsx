@@ -1,12 +1,12 @@
-import { Check, CreditCard } from "lucide-react";
+import { CreditCard } from "lucide-react";
 import type { Metadata } from "next";
 
 import { EmptyState, PageHeader, PageShell } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCurrentShop } from "@/lib/auth/session";
-import { PLANS, planOf, usagePeriodStart, type SelfServePlan } from "@/lib/billing/plans";
-import { billingSummary, formatPrice } from "@/lib/billing/status";
+import { PLANS, planOf, usagePeriodStart } from "@/lib/billing/plans";
+import { billingSummary } from "@/lib/billing/status";
 import { loadAiAccess } from "@/lib/billing/usage";
 import { serverEnv } from "@/lib/env";
 import { paypalConfig } from "@/lib/paypal/client";
@@ -15,17 +15,15 @@ import { LIVE_STATUSES, loadPrices } from "@/lib/stripe/checkout";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
+import { PricingCards } from "@/components/billing/pricing-cards";
 import { ChoosePlanButton, ManageBillingButton, PayPalManage, PayPalPlanButton } from "./billing-buttons";
 
 export const metadata: Metadata = { title: "Billing · AstaDesk" };
 
-const dateFormat = new Intl.DateTimeFormat("en", { dateStyle: "medium", timeZone: "UTC" });
-
-const FEATURES: Record<SelfServePlan | "scale", string[]> = {
-  starter: [`${PLANS.starter.aiRepliesPerMonth} AI replies a month`, "Refunds, cancellations and edits with your approval", "Email support inbox"],
-  growth: [`${PLANS.growth.aiRepliesPerMonth} AI replies a month`, "Autopilot: send confident replies automatically", "Everything in Starter"],
-  scale: ["Unlimited AI replies", "Autopilot", "Custom setup and priority support"],
-};
+const dateFormat = new Intl.DateTimeFormat("en", {
+  dateStyle: "medium",
+  timeZone: "UTC",
+});
 
 const TONE = { ok: "default", warn: "secondary", bad: "destructive" } as const;
 
@@ -85,40 +83,36 @@ export default async function BillingPage({ searchParams }: PageProps<"/billing"
       <Card>
         <CardHeader>
           <CardTitle className="flex flex-wrap items-center gap-2">
-            <span className="capitalize">{plan === "trial" ? "Free trial" : `${plan} plan`}</span>
+            <span className="capitalize">{plan === "trial" ? "Your plan" : `${plan} plan`}</span>
             <Badge variant={TONE[summary.tone]}>{summary.label}</Badge>
           </CardTitle>
           <CardDescription>{summary.detail}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-wrap justify-between gap-2 text-sm">
-              <span className="font-medium">
-                {limit === null ? `${used} AI replies this period` : `${used} of ${limit} AI replies used`}
-              </span>
-              <span className="text-muted-foreground">Since {dateFormat.format(usagePeriodStart(now, shop))}</span>
-            </div>
-            {limit !== null && (
-              <div
-                role="progressbar"
-                aria-label="AI replies used this period"
-                aria-valuenow={used}
-                aria-valuemin={0}
-                aria-valuemax={limit}
-                className="h-2 overflow-hidden rounded-full bg-muted"
-              >
-                <div className={cn("h-full rounded-full", usedPct >= 90 ? "bg-destructive" : "bg-primary")} style={{ width: `${usedPct}%` }} />
+          {plan !== "trial" && (
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap justify-between gap-2 text-sm">
+                <span className="font-medium">{limit === null ? `${used} AI replies this period` : `${used} of ${limit} AI replies used`}</span>
+                <span className="text-muted-foreground">Since {dateFormat.format(usagePeriodStart(now, shop))}</span>
               </div>
-            )}
-            {!access.allowed && (
-              <p className="text-sm text-destructive">
-                {shop.agentName} is paused. New messages still arrive, but no AI drafts are written.
-              </p>
-            )}
-          </div>
-          {isOwner && onPayPal && (
-            <PayPalManage manageUrl={paypalManageUrl()} cancelled={shop.subscriptionStatus === "canceled"} />
+              {limit !== null && (
+                <div
+                  role="progressbar"
+                  aria-label="AI replies used this period"
+                  aria-valuenow={used}
+                  aria-valuemin={0}
+                  aria-valuemax={limit}
+                  className="h-2 overflow-hidden rounded-full bg-muted"
+                >
+                  <div className={cn("h-full rounded-full", usedPct >= 90 ? "bg-destructive" : "bg-primary")} style={{ width: `${usedPct}%` }} />
+                </div>
+              )}
+              {!access.allowed && (
+                <p className="text-sm text-destructive">{shop.agentName} is paused. New messages still arrive, but no AI drafts are written.</p>
+              )}
+            </div>
           )}
+          {isOwner && onPayPal && <PayPalManage manageUrl={paypalManageUrl()} cancelled={shop.subscriptionStatus === "canceled"} />}
           {isOwner && !onPayPal && shop.hasStripeCustomer && (
             <div className="self-start">
               <ManageBillingButton />
@@ -132,84 +126,36 @@ export default async function BillingPage({ searchParams }: PageProps<"/billing"
       {prices.length === 0 ? (
         <EmptyState icon={CreditCard} title="Plans aren't available yet" description="Billing is being set up. Please check back soon." />
       ) : (
-        <div className="grid gap-4 md:grid-cols-3">
-          {prices.map((price) => {
-            const current = plan === price.plan && subscribed;
-            const recommended = price.plan === "growth";
+        <PricingCards
+          prices={prices}
+          cta={(p) => {
+            const current = plan === p && subscribed;
+            if (current) return <Badge>Your current plan</Badge>;
+            if (!isOwner) return null;
+            const label = subscribed ? `Switch to ${p}` : `Choose ${p}`;
             return (
-              <Card key={price.plan} className={cn(recommended && "border-primary")}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 capitalize">
-                    {price.plan}
-                    {recommended && <Badge variant="secondary">Most popular</Badge>}
-                  </CardTitle>
-                  <CardDescription>
-                    <span className="text-2xl font-semibold text-foreground">{formatPrice(price.amount, price.currency)}</span> / {price.interval}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-1 flex-col gap-4">
-                  <ul className="flex flex-col gap-2 text-sm">
-                    {FEATURES[price.plan].map((f) => (
-                      <li key={f} className="flex gap-2">
-                        <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="mt-auto">
-                    {current ? (
-                      <Badge>Your current plan</Badge>
-                    ) : isOwner && usePayPal ? (
-                      <PayPalPlanButton
-                        plan={price.plan}
-                        label={onPayPal && subscribed ? `Switch to ${price.plan} with PayPal` : `Subscribe with PayPal`}
-                      />
-                    ) : isOwner ? (
-                      <ChoosePlanButton
-                        plan={price.plan}
-                        variant={recommended ? "default" : "outline"}
-                        label={subscribed ? `Switch to ${price.plan}` : `Choose ${price.plan}`}
-                      />
-                    ) : null}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-          <Card>
-            <CardHeader>
-              <CardTitle>Scale</CardTitle>
-              <CardDescription>
-                <span className="text-2xl font-semibold text-foreground">Custom</span>
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-1 flex-col gap-4">
-              <ul className="flex flex-col gap-2 text-sm">
-                {FEATURES.scale.map((f) => (
-                  <li key={f} className="flex gap-2">
-                    <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-auto text-sm">
-                {plan === "scale" ? (
-                  <Badge>Your current plan</Badge>
-                ) : salesEmail ? (
-                  <a href={`mailto:${salesEmail}?subject=AstaDesk%20Scale%20plan`} className="font-medium text-primary underline underline-offset-2">
-                    Contact us
-                  </a>
+              <div className="flex flex-col gap-2">
+                {usePayPal ? (
+                  <PayPalPlanButton plan={p} label={onPayPal && subscribed ? `${label} with PayPal` : "Subscribe with PayPal"} />
                 ) : (
-                  <span className="text-muted-foreground">Contact us for a custom plan.</span>
+                  <ChoosePlanButton plan={p} variant={p === "growth" ? "default" : "outline"} label={label} />
+                )}
+                {p === "scale" && salesEmail && (
+                  <a
+                    href={`mailto:${salesEmail}?subject=AstaDesk%20Scale%20plan`}
+                    className="text-center text-xs underline underline-offset-2 opacity-80"
+                  >
+                    Need more than 1,000 replies? Talk to us
+                  </a>
                 )}
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            );
+          }}
+        />
       )}
 
       <p className="text-xs text-muted-foreground">
-        Payments are handled securely by Stripe. AstaDesk never sees your card details. Prices exclude any applicable tax.
+        Payments are handled securely by {usePayPal ? "PayPal" : "Stripe"}. AstaDesk never sees your card details. Prices exclude any applicable tax.
       </p>
     </PageShell>
   );

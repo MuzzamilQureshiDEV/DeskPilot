@@ -46,3 +46,6 @@ next-env.d.ts
 
 # Load test output (npm run test:load)
 load-report.json
+
+.vercel
+.env*

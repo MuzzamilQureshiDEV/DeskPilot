@@ -4,27 +4,28 @@ import { buildChecklist, checklistProgress, type SetupState } from "@/lib/home/c
 import { average, dailyBuckets } from "@/lib/home/stats";
 import { agentSettingsSchema, presetFor, toneText } from "@/lib/settings/agent";
 
-const fresh: SetupState = { storeConnected: false, policyCount: 0, emailConnected: false, toneChosen: false, testRuns: 0, live: false };
+const fresh: SetupState = { storeConnected: false, policyCount: 0, emailConnected: false, toneChosen: false, testRuns: 0, live: false, subscribed: false };
 
 describe("setup checklist", () => {
   it("starts with nothing done", () => {
     const items = buildChecklist(fresh, "Ava");
-    expect(items.map((i) => i.id)).toEqual(["store", "policies", "tone", "test", "email", "live"]);
+    expect(items.map((i) => i.id)).toEqual(["store", "policies", "tone", "test", "email", "plan", "live"]);
     expect(items.every((i) => !i.done)).toBe(true);
     expect(items.some((i) => i.comingSoon)).toBe(false);
-    expect(checklistProgress(items)).toEqual({ done: 0, total: 6 });
+    expect(checklistProgress(items)).toEqual({ done: 0, total: 7 });
     expect(items[2]?.title).toBe("Choose Ava's tone");
   });
 
   it("ticks steps off from real state", () => {
     const items = buildChecklist({ ...fresh, storeConnected: true, policyCount: 2, toneChosen: true, testRuns: 1 }, "Ava");
     expect(items.filter((i) => i.done).map((i) => i.id)).toEqual(["store", "policies", "tone", "test"]);
-    expect(checklistProgress(items)).toEqual({ done: 4, total: 6 });
+    expect(checklistProgress(items)).toEqual({ done: 4, total: 7 });
   });
 
   it("ticks email and go-live", () => {
-    const items = buildChecklist({ ...fresh, emailConnected: true, live: true }, "Ava");
-    expect(checklistProgress(items)).toEqual({ done: 2, total: 6 });
+    const items = buildChecklist({ ...fresh, emailConnected: true, live: true, subscribed: true }, "Ava");
+    expect(checklistProgress(items)).toEqual({ done: 3, total: 7 });
+    expect(items.find((i) => i.id === "plan")).toMatchObject({ title: "Choose a plan", done: true, href: "/billing" });
   });
 });
 

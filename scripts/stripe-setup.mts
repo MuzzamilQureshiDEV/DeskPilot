@@ -26,8 +26,9 @@ console.log(`Stripe ${mode} mode`);
 
 // Kept in sync with PRICE_LOOKUP_KEYS in src/lib/billing/plans.ts.
 const PLANS = [
-  { lookupKey: "deskpilot_starter_monthly", name: "AstaDesk Starter", description: "100 AI replies a month", amount: 2900 },
-  { lookupKey: "deskpilot_growth_monthly", name: "AstaDesk Growth", description: "250 AI replies a month, autopilot", amount: 7900 },
+  { lookupKey: "deskpilot_starter_monthly", name: "AstaDesk Starter", description: "100 AI replies a month", amount: 5200 },
+  { lookupKey: "deskpilot_growth_monthly", name: "AstaDesk Growth", description: "250 AI replies a month, autopilot", amount: 9900 },
+  { lookupKey: "deskpilot_scale_monthly", name: "AstaDesk Scale", description: "1,000 AI replies a month, full autopilot", amount: 23000 },
 ];
 const EVENTS: Stripe.WebhookEndpointCreateParams.EnabledEvent[] = [
   "checkout.session.completed",
@@ -42,7 +43,12 @@ const existing = await stripe.prices.list({ lookup_keys: PLANS.map((p) => p.look
 const portalProducts: { product: string; prices: string[] }[] = [];
 for (const plan of PLANS) {
   let price = existing.data.find((p) => p.lookup_key === plan.lookupKey);
-  if (price) {
+  if (price && price.unit_amount !== plan.amount) {
+    // New price on the same product; the lookup key moves to it.
+    const productId = typeof price.product === "string" ? price.product : price.product.id;
+    price = await stripe.prices.create({ product: productId, unit_amount: plan.amount, currency: "usd", recurring: { interval: "month" }, lookup_key: plan.lookupKey, transfer_lookup_key: true });
+    console.log(`~ ${plan.name}: new price ${plan.amount / 100}/month`);
+  } else if (price) {
     console.log(`✓ ${plan.name}: price exists (${(price.unit_amount ?? 0) / 100} ${price.currency})`);
   } else {
     const product = await stripe.products.create({ name: plan.name, description: plan.description, metadata: { app: "deskpilot" } });

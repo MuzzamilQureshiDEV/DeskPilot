@@ -84,7 +84,7 @@ describe.skipIf(!hasDbEnv)("process-message pipeline (live DB, fake model)", () 
 
   beforeEach(async () => {
     await admin.from("usage_events").delete().eq("shop_id", shopId);
-    await admin.from("shops").update({ plan: "trial", trial_ends_at: new Date(Date.now() + 7 * 86_400_000).toISOString() }).eq("id", shopId);
+    await admin.from("shops").update({ plan: "starter", trial_ends_at: null, subscription_status: "active" }).eq("id", shopId);
   });
 
   async function newConversation(body: string): Promise<MessageRef> {
@@ -188,14 +188,14 @@ describe.skipIf(!hasDbEnv)("process-message pipeline (live DB, fake model)", () 
     expect((await prepareRun(admin, older)).skip).toBe("newer_message");
   });
 
-  it("stops at the plan limit and when the trial has ended", async () => {
+  it("stops at the plan limit, and when the shop has no plan", async () => {
     const ref = await newConversation("Any news?");
-    await admin.from("usage_events").insert(Array.from({ length: 25 }, () => ({ shop_id: shopId, kind: "ai_reply" })));
+    await admin.from("usage_events").insert(Array.from({ length: 100 }, () => ({ shop_id: shopId, kind: "ai_reply" })));
     expect((await prepareRun(admin, ref)).skip).toBe("usage_limit");
 
     await admin.from("usage_events").delete().eq("shop_id", shopId);
-    await admin.from("shops").update({ trial_ends_at: new Date(Date.now() - 86_400_000).toISOString() }).eq("id", shopId);
-    expect((await prepareRun(admin, ref)).skip).toBe("trial_ended");
+    await admin.from("shops").update({ plan: "trial", subscription_status: null }).eq("id", shopId);
+    expect((await prepareRun(admin, ref)).skip).toBe("no_plan");
   });
 
   it("a failed run leaves one note and escalates the conversation", async () => {
