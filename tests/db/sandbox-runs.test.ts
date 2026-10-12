@@ -28,6 +28,8 @@ describe.skipIf(!hasDbEnv)("sandbox run limits (live DB)", () => {
     b = await createTestUser(admin, { shopName: "Sandbox B" });
     shopA = await shopOf(a);
     shopB = await shopOf(b);
+    // A is on a paid plan (daily typed limit); B has no plan yet (2 tries in total).
+    await admin.from("shops").update({ plan: "starter", subscription_status: "active" }).eq("id", shopA);
   });
 
   afterAll(async () => {
@@ -60,6 +62,33 @@ describe.skipIf(!hasDbEnv)("sandbox run limits (live DB)", () => {
     const res = await userA().rpc("claim_sandbox_run", { p_shop_id: shopA, p_free_text: false }).single();
     expect(res.error).toBeNull();
     expect(res.data?.remaining).toBe(0);
+  });
+
+  it("gives a shop with no plan 2 tries in total, scenarios and typed questions together", async () => {
+    if (!b) throw new Error("not set up");
+    const first = await b.client.rpc("claim_sandbox_run", { p_shop_id: shopB, p_free_text: false }).single();
+    expect(first.error).toBeNull();
+    expect(first.data?.remaining).toBe(1);
+
+    // A failed run is given back.
+    await b.client.rpc("release_sandbox_run", { p_event_id: first.data!.event_id });
+    const again = await b.client.rpc("claim_sandbox_run", { p_shop_id: shopB, p_free_text: false }).single();
+    expect(again.data?.remaining).toBe(1);
+
+    const second = await b.client.rpc("claim_sandbox_run", { p_shop_id: shopB, p_free_text: true }).single();
+    expect(second.error).toBeNull();
+    expect(second.data?.remaining).toBe(0);
+
+    for (const freeText of [false, true]) {
+      const third = await b.client.rpc("claim_sandbox_run", { p_shop_id: shopB, p_free_text: freeText }).single();
+      expect(third.error?.message).toContain("sandbox_limit");
+    }
+    // Tries never reset by day: the limit counts all of the shop's runs.
+    await admin.from("usage_events").update({ created_at: new Date(Date.now() - 3 * 86_400_000).toISOString() }).eq("shop_id", shopB);
+    const later = await b.client.rpc("claim_sandbox_run", { p_shop_id: shopB, p_free_text: false }).single();
+    expect(later.error?.message).toContain("sandbox_limit");
+
+    await admin.from("usage_events").delete().eq("shop_id", shopB);
   });
 
   it("refuses claims for a shop the user isn't a member of", async () => {
@@ -96,6 +125,8 @@ describe.skipIf(!hasDbEnv)("sandbox run limits (live DB)", () => {
 
   it("releasing a failed free-text run gives the allowance back", async () => {
     if (!b) throw new Error("not set up");
+    await admin.from("shops").update({ plan: "growth", subscription_status: "active" }).eq("id", shopB);
+    await admin.from("usage_events").delete().eq("shop_id", shopB);
     const claim = await b.client.rpc("claim_sandbox_run", { p_shop_id: shopB, p_free_text: true }).single();
     expect(claim.data?.remaining).toBe(2);
     await b.client.rpc("release_sandbox_run", { p_event_id: claim.data?.event_id ?? -1 });

@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { PageHeader, PageShell } from "@/components/dashboard/page-header";
+import { PlanLocked } from "@/components/dashboard/plan-locked";
 import { getCurrentShop } from "@/lib/auth/session";
+import { hasPlan } from "@/lib/billing/plans";
 import { KIND_META, KNOWLEDGE_KINDS, parseKind } from "@/lib/knowledge/schema";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
@@ -15,6 +17,23 @@ export default async function TrainPage({ searchParams }: PageProps<"/train">) {
   const kind = parseKind((await searchParams).kind);
   const shop = await getCurrentShop();
   const agent = shop?.agentName ?? "Your agent";
+
+  if (shop && !hasPlan(shop.plan)) {
+    return (
+      <PageShell>
+        <PageHeader title="Train" description={`Teach ${agent} about your store.`} />
+        <PlanLocked
+          title={`Train ${agent} once you've chosen a plan`}
+          description={`${agent} answers your customers only from what you teach here and your live store data. Choose a plan to start training.`}
+          points={[
+            "Policies for returns, shipping and cancellations",
+            "FAQs about your products and store",
+            "Your brand voice and example replies",
+          ]}
+        />
+      </PageShell>
+    );
+  }
 
   const supabase = await createClient();
   const { data: rows } = shop

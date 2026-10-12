@@ -9,16 +9,17 @@ const fresh: SetupState = { storeConnected: false, policyCount: 0, emailConnecte
 describe("setup checklist", () => {
   it("starts with nothing done", () => {
     const items = buildChecklist(fresh, "Ava");
-    expect(items.map((i) => i.id)).toEqual(["store", "policies", "tone", "test", "email", "plan", "live"]);
+    expect(items.map((i) => i.id)).toEqual(["store", "test", "plan", "policies", "tone", "email", "live"]);
     expect(items.every((i) => !i.done)).toBe(true);
     expect(items.some((i) => i.comingSoon)).toBe(false);
     expect(checklistProgress(items)).toEqual({ done: 0, total: 7 });
-    expect(items[2]?.title).toBe("Choose Ava's tone");
+    expect(items[2]?.title).toBe("Choose a plan");
+    expect(items[4]?.title).toBe("Choose Ava's tone");
   });
 
   it("ticks steps off from real state", () => {
     const items = buildChecklist({ ...fresh, storeConnected: true, policyCount: 2, toneChosen: true, testRuns: 1 }, "Ava");
-    expect(items.filter((i) => i.done).map((i) => i.id)).toEqual(["store", "policies", "tone", "test"]);
+    expect(items.filter((i) => i.done).map((i) => i.id)).toEqual(["store", "test", "policies", "tone"]);
     expect(checklistProgress(items)).toEqual({ done: 4, total: 7 });
   });
 

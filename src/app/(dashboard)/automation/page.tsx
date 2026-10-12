@@ -3,11 +3,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { PageHeader, PageShell } from "@/components/dashboard/page-header";
+import { PlanLocked } from "@/components/dashboard/plan-locked";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { emailSendingEnabled } from "@/lib/email/outbound";
 import { getCurrentShop } from "@/lib/auth/session";
 import { isMoneyCategory, loadSettings, MODE_META } from "@/lib/automation/settings";
-import { PLANS, planOf } from "@/lib/billing/plans";
+import { hasPlan, PLANS, planOf } from "@/lib/billing/plans";
 import { createClient } from "@/lib/supabase/server";
 
 import { SettingRow } from "./setting-row";
@@ -17,6 +18,24 @@ export const metadata: Metadata = { title: "Automation · AstaDesk" };
 export default async function AutomationPage() {
   const shop = await getCurrentShop();
   const agent = shop?.agentName ?? "your agent";
+
+  if (shop && !hasPlan(shop.plan)) {
+    return (
+      <PageShell>
+        <PageHeader title="Automation" description={`Decide how much ${agent} handles on its own, topic by topic.`} />
+        <PlanLocked
+          title="Automation unlocks with a plan"
+          description={`Choose a plan to decide, topic by topic, whether ${agent} drafts replies for you or answers routine questions on her own.`}
+          points={[
+            "Drafts for you to review and send (Copilot)",
+            "Automatic replies for routine questions (Autopilot, Growth and Scale)",
+            "Refunds, cancellations and address changes always wait for your approval",
+          ]}
+        />
+      </PageShell>
+    );
+  }
+
   const settings = shop ? await loadSettings(await createClient(), shop.id) : [];
   const autopilotAllowed = shop ? PLANS[planOf(shop.plan)].autopilot : false;
   const support = settings.filter((s) => !isMoneyCategory(s.category));

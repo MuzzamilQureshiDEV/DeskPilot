@@ -41,14 +41,20 @@ describe.skipIf(!hasDbEnv)("automation settings (live DB)", () => {
     expect(rows.every((r) => r.mode === "copilot" && r.threshold === 0.85)).toBe(true);
   });
 
-  it("saves off and copilot on any plan", async () => {
-    expect(await saveSetting(db(), { id: shopA, plan: "trial" }, { category: "general", mode: "off", threshold: 0.85 })).toEqual({ ok: true });
+  it("refuses any change without a plan", async () => {
+    const res = await saveSetting(db(), { id: shopA, plan: "trial" }, { category: "general", mode: "off", threshold: 0.85 });
+    expect(res).toMatchObject({ ok: false, error: expect.stringContaining("Choose a plan") });
+    expect((await setting("general"))?.mode).toBe("copilot");
+  });
+
+  it("saves off and copilot on any paid plan", async () => {
+    expect(await saveSetting(db(), { id: shopA, plan: "starter" }, { category: "general", mode: "off", threshold: 0.85 })).toEqual({ ok: true });
     expect(await setting("general")).toEqual({ mode: "off", confidence_threshold: 0.85 });
   });
 
   it("refuses autopilot on plans without it, allows it on Growth", async () => {
-    const trial = await saveSetting(db(), { id: shopA, plan: "trial" }, { category: "order_status", mode: "autopilot", threshold: 0.9 });
-    expect(trial).toMatchObject({ ok: false, error: expect.stringContaining("Growth") });
+    const starter = await saveSetting(db(), { id: shopA, plan: "starter" }, { category: "order_status", mode: "autopilot", threshold: 0.9 });
+    expect(starter).toMatchObject({ ok: false, error: expect.stringContaining("Growth") });
     expect((await setting("order_status"))?.mode).toBe("copilot");
 
     const growth = await saveSetting(db(), { id: shopA, plan: "growth" }, { category: "order_status", mode: "autopilot", threshold: 0.9 });

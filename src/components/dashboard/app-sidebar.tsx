@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronsUpDown, CreditCard, LogOut, Search, Settings } from "lucide-react";
+import { ChevronsUpDown, CreditCard, Lock, LogOut, Search, Settings } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTransition } from "react";
@@ -41,7 +41,11 @@ type AppSidebarProps = {
   storeConnected: boolean;
   /** Items waiting for a person, shown as counts next to the nav items. */
   counts?: { escalations: number; approvals: number };
+  /** No plan yet: Train and Automation show a lock. */
+  locked?: boolean;
 };
+
+const PLAN_ONLY = new Set(["/train", "/automation"]);
 
 function initials(name: string): string {
   const letters = name
@@ -52,7 +56,7 @@ function initials(name: string): string {
   return letters.join("") || "?";
 }
 
-export function AppSidebar({ shopName, email, storeConnected, counts }: AppSidebarProps) {
+export function AppSidebar({ shopName, email, storeConnected, counts, locked }: AppSidebarProps) {
   const pathname = usePathname();
   const active = activeNavItem(pathname);
   const { isMobile, setOpenMobile } = useSidebar();
@@ -126,6 +130,9 @@ export function AppSidebar({ shopName, email, storeConnected, counts }: AppSideb
                             </span>
                           ) : null;
                         })()}
+                        {locked && PLAN_ONLY.has(item.href) && (
+                          <Lock className="ml-auto size-3.5! shrink-0 text-muted-foreground" aria-label="Needs a plan" />
+                        )}
                         {item.href === "/store" && !storeConnected && (
                           <span className="ml-auto size-2 shrink-0 rounded-full bg-primary" aria-label="Not connected yet" />
                         )}

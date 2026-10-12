@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import { CATEGORIES, MONEY_CATEGORIES, type Category } from "@/lib/ai/schemas";
-import { PLANS, planOf } from "@/lib/billing/plans";
+import { hasPlan, PLANS, planOf } from "@/lib/billing/plans";
 import type { Database } from "@/types/database";
 
 // Automation settings per category (CLAUDE.md §7 step 5, §11). Plain
@@ -55,6 +55,7 @@ export async function saveSetting(db: Db, shop: { id: string; plan: string }, ra
   if (!parsed.success) return { ok: false, error: "Invalid setting." };
   const { category, mode, threshold } = parsed.data;
 
+  if (!hasPlan(shop.plan)) return { ok: false, error: "Choose a plan to change automation settings." };
   if (mode === "autopilot" && isMoneyCategory(category)) {
     return { ok: false, error: "Refunds, cancellations and address changes always need your approval." };
   }

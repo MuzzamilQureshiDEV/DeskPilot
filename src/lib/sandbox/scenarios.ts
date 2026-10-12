@@ -3,6 +3,8 @@
 import { SANDBOX_CUSTOMERS } from "@/lib/sandbox/data";
 
 export const SANDBOX_FREE_TEXT_DAILY_LIMIT = 3;
+/** Test runs for a shop with no plan yet: in total, scenarios and typed questions together. */
+export const SANDBOX_NO_PLAN_TOTAL_LIMIT = 2;
 
 export const SCENARIO_IDS = [
   "where_is_my_order",

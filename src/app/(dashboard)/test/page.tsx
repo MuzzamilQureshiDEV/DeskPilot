@@ -7,15 +7,24 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { getCurrentShop } from "@/lib/auth/session";
 import { aiConfigured } from "@/lib/ai/client";
 import { buildSandboxStore, SANDBOX_SCENARIOS, SANDBOX_STORE_NAME } from "@/lib/sandbox/data";
-import { SANDBOX_FREE_TEXT_DAILY_LIMIT } from "@/lib/sandbox/scenarios";
+import { SANDBOX_FREE_TEXT_DAILY_LIMIT, SANDBOX_NO_PLAN_TOTAL_LIMIT } from "@/lib/sandbox/scenarios";
 import { createClient } from "@/lib/supabase/server";
 
 import { Playground } from "./playground";
 
 export const metadata: Metadata = { title: "Test · AstaDesk" };
 
-async function freeTextRunsToday(shopId: string): Promise<number> {
+/** Runs that count toward the limit (same rules as claim_sandbox_run). */
+async function runsUsed(shopId: string, noPlan: boolean): Promise<number> {
   const supabase = await createClient();
+  if (noPlan) {
+    const { count } = await supabase
+      .from("usage_events")
+      .select("id", { count: "exact", head: true })
+      .eq("shop_id", shopId)
+      .in("kind", ["sandbox_freetext", "sandbox_preset"]);
+    return count ?? 0;
+  }
   const startOfDay = new Date();
   startOfDay.setUTCHours(0, 0, 0, 0);
   const { count } = await supabase
@@ -31,7 +40,9 @@ export default async function TestPage() {
   const shop = await getCurrentShop();
   const agentName = shop?.agentName ?? "Your agent";
   const aiReady = aiConfigured();
-  const used = shop ? await freeTextRunsToday(shop.id) : SANDBOX_FREE_TEXT_DAILY_LIMIT;
+  const noPlan = shop?.plan === "trial";
+  const limit = noPlan ? SANDBOX_NO_PLAN_TOTAL_LIMIT : SANDBOX_FREE_TEXT_DAILY_LIMIT;
+  const used = shop ? await runsUsed(shop.id, noPlan) : limit;
   const orders = buildSandboxStore().orders;
 
   return (
@@ -67,7 +78,8 @@ export default async function TestPage() {
       <Playground
         agentName={agentName}
         aiReady={aiReady && !!shop}
-        initialRemaining={Math.max(SANDBOX_FREE_TEXT_DAILY_LIMIT - used, 0)}
+        initialRemaining={Math.max(limit - used, 0)}
+        noPlan={noPlan}
       />
 
       <Card>

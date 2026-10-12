@@ -1,13 +1,14 @@
 "use client";
 
-import { AlertTriangle, Check, RotateCcw, Sparkles, Star, X } from "lucide-react";
+import { AlertTriangle, Check, Lock, RotateCcw, Sparkles, Star, X } from "lucide-react";
+import Link from "next/link";
 import { useId, useState, useTransition } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { SANDBOX_CUSTOMERS } from "@/lib/sandbox/data";
 import type { ExplainStep } from "@/lib/sandbox/explain";
-import { SANDBOX_FREE_TEXT_DAILY_LIMIT, SCENARIOS, SCENARIO_IDS, sandboxCustomer, type ScenarioId } from "@/lib/sandbox/scenarios";
+import { SANDBOX_FREE_TEXT_DAILY_LIMIT, SANDBOX_NO_PLAN_TOTAL_LIMIT, SCENARIOS, SCENARIO_IDS, sandboxCustomer, type ScenarioId } from "@/lib/sandbox/scenarios";
 import { cn } from "@/lib/utils";
 
 import { runSandboxTest } from "./actions";
@@ -30,7 +31,18 @@ const STATUS: Record<LiveOutcome, { label: string; className: string }> = {
 
 const PENDING_STEPS = ["Reading the message", "Looking up the order and customer", "Checking store policy", "Writing a reply"];
 
-export function Playground({ agentName, aiReady, initialRemaining }: { agentName: string; aiReady: boolean; initialRemaining: number }) {
+export function Playground({
+  agentName,
+  aiReady,
+  initialRemaining,
+  noPlan,
+}: {
+  agentName: string;
+  aiReady: boolean;
+  initialRemaining: number;
+  /** No plan yet: a few tries in total, shared by scenarios and typed questions. */
+  noPlan: boolean;
+}) {
   const [thread, setThread] = useState<Thread | null>(null);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [remaining, setRemaining] = useState(initialRemaining);
@@ -82,9 +94,38 @@ export function Playground({ agentName, aiReady, initialRemaining }: { agentName
   }
 
   const disabled = !aiReady || pending;
+  const outOfTries = noPlan && remaining === 0;
 
   return (
     <div className="flex flex-col gap-6">
+      {noPlan && (
+        <div
+          role="status"
+          className={cn(
+            "flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-4 text-sm",
+            outOfTries ? "border-primary/30 bg-primary/5" : "bg-card",
+          )}
+        >
+          <div className="flex items-start gap-3">
+            {outOfTries ? <Lock className="mt-0.5 size-4 text-primary" aria-hidden /> : <Sparkles className="mt-0.5 size-4 text-primary" aria-hidden />}
+            <div>
+              <p className="font-medium">
+                {outOfTries
+                  ? "You've used your free tries"
+                  : `${remaining} of ${SANDBOX_NO_PLAN_TOTAL_LIMIT} free tries left`}
+              </p>
+              <p className="text-muted-foreground">
+                {outOfTries
+                  ? `Choose a plan to keep testing and let ${agentName} reply to your real customers.`
+                  : `Pick a request or ask your own question. Each one uses a try. With a plan, testing is unlimited.`}
+              </p>
+            </div>
+          </div>
+          <Link href="/billing" className={buttonVariants({ size: "sm", variant: outOfTries ? "default" : "outline" })}>
+            See plans
+          </Link>
+        </div>
+      )}
       {/* 1. Pick a request */}
       <section className="flex flex-col gap-2" aria-labelledby="pick-heading">
         <h2 id="pick-heading" className="text-sm font-medium text-muted-foreground">
@@ -97,7 +138,7 @@ export function Playground({ agentName, aiReady, initialRemaining }: { agentName
               <button
                 key={id}
                 type="button"
-                disabled={disabled}
+                disabled={disabled || outOfTries}
                 onClick={() => run({ kind: "scenario", scenario: id }, SCENARIOS[id].message, [])}
                 className={cn(
                   "inline-flex items-center gap-1.5 rounded-xl border bg-card px-4 py-2 text-sm font-medium shadow-soft transition-colors hover:border-primary/40 disabled:opacity-60",
@@ -255,11 +296,11 @@ export function Playground({ agentName, aiReady, initialRemaining }: { agentName
             Ask {agentName} your own question
           </h2>
           <span className="text-xs text-muted-foreground">
-            {remaining} of {SANDBOX_FREE_TEXT_DAILY_LIMIT} free runs left today
+            {noPlan ? `${remaining} of ${SANDBOX_NO_PLAN_TOTAL_LIMIT} free tries left` : `${remaining} of ${SANDBOX_FREE_TEXT_DAILY_LIMIT} free runs left today`}
           </span>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
-          Type any customer message. {agentName} answers from the sample store only (live AI, limited free runs).
+          Type any customer message. {agentName} answers from the sample store only ({noPlan ? "live AI, uses a free try" : "live AI, limited free runs"}).
         </p>
         <form
           className="mt-4 flex flex-col gap-3"

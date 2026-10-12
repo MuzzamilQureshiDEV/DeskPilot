@@ -13,7 +13,7 @@ import { loadKnowledge } from "@/lib/knowledge/load";
 import { buildSandboxStore, SANDBOX_KNOWLEDGE, SANDBOX_STORE_NAME } from "@/lib/sandbox/data";
 import { explainRun } from "@/lib/sandbox/explain";
 import { SandboxProvider } from "@/lib/sandbox/provider";
-import { SCENARIOS, sandboxCustomer } from "@/lib/sandbox/scenarios";
+import { SANDBOX_FREE_TEXT_DAILY_LIMIT, SANDBOX_NO_PLAN_TOTAL_LIMIT, SCENARIOS, sandboxCustomer } from "@/lib/sandbox/scenarios";
 import { createClient } from "@/lib/supabase/server";
 
 import {
@@ -65,7 +65,11 @@ export async function runSandboxTest(raw: unknown): Promise<SandboxRunResponse> 
   const claim = await supabase.rpc("claim_sandbox_run", { p_shop_id: shop.id, p_free_text: freeText }).single();
   if (claim.error || !claim.data) {
     if (claim.error?.message.includes("sandbox_limit")) {
-      return { ok: false, code: "limit", message: "You've used today's 3 free-text test runs. The preset scenarios are still available." };
+      const message =
+        shop.plan === "trial"
+          ? `You've used your ${SANDBOX_NO_PLAN_TOTAL_LIMIT} free tries. Choose a plan to keep testing and let ${shop.agentName} reply to your customers.`
+          : `You've used today's ${SANDBOX_FREE_TEXT_DAILY_LIMIT} free-text test runs. The preset scenarios are still available.`;
+      return { ok: false, code: "limit", message };
     }
     throw new Error("Could not start a test run");
   }

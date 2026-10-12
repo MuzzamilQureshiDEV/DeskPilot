@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { getCurrentShop } from "@/lib/auth/session";
+import { hasPlan } from "@/lib/billing/plans";
 import { KIND_META, knowledgeIdSchema, knowledgeInputSchema } from "@/lib/knowledge/schema";
 import { createClient } from "@/lib/supabase/server";
 
@@ -34,6 +35,7 @@ export async function saveKnowledge(
 
   const shop = await getCurrentShop();
   if (!shop) return { error: "Your account isn't linked to a store." };
+  if (!hasPlan(shop.plan)) return { error: "Choose a plan to train Ava." };
   const supabase = await createClient();
 
   if (id) {
@@ -65,7 +67,7 @@ export async function saveKnowledge(
 export async function deleteKnowledge(id: string): Promise<{ ok: boolean }> {
   const parsed = knowledgeIdSchema.safeParse(id);
   const shop = await getCurrentShop();
-  if (!parsed.success || !shop) return { ok: false };
+  if (!parsed.success || !shop || !hasPlan(shop.plan)) return { ok: false };
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("knowledge")

@@ -40,6 +40,7 @@ export default async function DashboardLayout({ children }: LayoutProps<"/">) {
         email={user.email}
         storeConnected={storeConnected}
         counts={{ escalations: escalations ?? 0, approvals: approvals ?? 0 }}
+        locked={shop?.plan === "trial"}
       />
       {shop && <LiveRefresh shopId={shop.id} />}
       <CommandPalette />

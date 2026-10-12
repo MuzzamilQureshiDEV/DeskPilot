@@ -52,6 +52,9 @@ export type BillingState = {
 
 const isPaid = (plan: PlanTier) => plan !== "trial";
 
+/** Train, Automation and unlimited testing need a paid plan ("trial" = no plan yet). */
+export const hasPlan = (plan: string) => isPaid(planOf(plan));
+
 /**
  * Start of the current usage period: the Stripe billing period for paid plans,
  * otherwise the UTC calendar month.
