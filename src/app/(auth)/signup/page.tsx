@@ -20,7 +20,7 @@ export default async function SignupPage({ searchParams }: PageProps<"/signup">)
     <Card>
       <CardHeader>
         <CardTitle>Create your account</CardTitle>
-        <CardDescription>Explore free and test Ava on a sample store. Choose a plan when you&apos;re ready for Ava to reply to customers.</CardDescription>
+        <CardDescription>Set up your store and meet Ava, your AI support agent. Pick a plan when you&apos;re ready to go live.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {shopDomain && (
