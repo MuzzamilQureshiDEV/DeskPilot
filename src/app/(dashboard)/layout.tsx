@@ -57,8 +57,8 @@ export default async function DashboardLayout({ children }: LayoutProps<"/">) {
         {access && !access.allowed && access.reason === "no_plan" && (
           <div role="status" className="flex flex-wrap items-center justify-between gap-2 border-b bg-primary/10 px-4 py-2 text-sm">
             <span>
-              Choose a plan so {shop?.agentName ?? "Ava"} can reply to your customers. You can explore and test{" "}
-              {shop?.agentName ?? "Ava"} on the sample store for free.
+              Choose a plan so {shop?.agentName ?? "Ava"} can start replying to your customers. Until then, you can set things up and
+              try {shop?.agentName ?? "Ava"} on the Test page.
             </span>
             <Link href="/billing" className="font-medium text-primary underline underline-offset-2">
               See plans

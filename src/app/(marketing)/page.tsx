@@ -63,8 +63,8 @@ const FAQ = [
     a: "The store chat is labelled as an AI assistant, and a person can take over any conversation at any time.",
   },
   {
-    q: "Can I try it before paying?",
-    a: "Yes. Create an account for free, connect your store, add your policies and test Ava on a sample store. Choose a plan when you're ready for Ava to reply to real customers.",
+    q: "Can I see how Ava works before choosing a plan?",
+    a: "Yes. Create your account, connect your store, add your policies and watch Ava answer questions on the Test page. Choose a plan when you're ready for Ava to reply to real customers.",
   },
 ];
 

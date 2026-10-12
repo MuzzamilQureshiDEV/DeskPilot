@@ -16,7 +16,7 @@ export function billingSummary(
 ): BillingSummary {
   const plan = planOf(shop.plan);
   if (plan === "trial") {
-    return { label: "No plan yet", tone: "warn", detail: "Choose a plan so Ava can reply to your customers. Exploring and the sample store are free." };
+    return { label: "No plan yet", tone: "warn", detail: "Choose a plan so Ava can start replying to your customers. You can keep setting up in the meantime." };
   }
 
   switch (shop.subscriptionStatus) {

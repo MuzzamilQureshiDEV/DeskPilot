@@ -326,7 +326,7 @@ export default async function HomePage() {
             </span>
             <span className="text-xs text-muted-foreground">
               {plan === "trial"
-                ? "Founding prices for early stores. Exploring and the sample store stay free."
+                ? "Founding prices for early stores. Lock yours in before spots run out."
                 : limit === null
                   ? `${used} AI replies this period`
                   : `${used} of ${limit} AI replies used this period`}
