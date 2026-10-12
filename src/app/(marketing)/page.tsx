@@ -16,7 +16,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { PricingCards } from "@/components/billing/pricing-cards";
+import { LaunchGate } from "@/components/marketing/launch-gate";
 import { buttonVariants } from "@/components/ui/button";
+import { LAUNCH_AT, LAUNCH_LABEL } from "@/lib/launch";
 import { paypalConfig } from "@/lib/paypal/client";
 import { loadPayPalPrices } from "@/lib/paypal/checkout";
 import { loadPrices } from "@/lib/stripe/checkout";
@@ -172,22 +174,24 @@ export default async function LandingPage() {
           <h2 className="text-center text-2xl font-semibold tracking-tight sm:text-3xl">Founding prices for early customers</h2>
           <p className="mt-2 text-center text-muted-foreground">Lock in these prices while founding spots last. Cancel anytime.</p>
           <div className="mt-10">
-            <PricingCards
-              prices={prices}
-              cta={(plan) => (
-                <Link
-                  href="/signup"
-                  className={buttonVariants({
-                    size: "lg",
-                    variant: plan === "growth" ? "default" : "outline",
-                    className: "w-full",
-                  })}
-                >
-                  Claim your founding spot
-                  <ArrowRight aria-hidden />
-                </Link>
-              )}
-            />
+            <LaunchGate launchAt={LAUNCH_AT} launchLabel={LAUNCH_LABEL}>
+              <PricingCards
+                prices={prices}
+                cta={(plan) => (
+                  <Link
+                    href="/signup"
+                    className={buttonVariants({
+                      size: "lg",
+                      variant: plan === "growth" ? "default" : "outline",
+                      className: "w-full",
+                    })}
+                  >
+                    Claim your founding spot
+                    <ArrowRight aria-hidden />
+                  </Link>
+                )}
+              />
+            </LaunchGate>
           </div>
         </div>
       </section>
