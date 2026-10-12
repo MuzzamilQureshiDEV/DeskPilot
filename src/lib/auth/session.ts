@@ -35,6 +35,8 @@ export type CurrentShop = {
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
   hasStripeCustomer: boolean;
+  billingProvider: "stripe" | "paypal" | null;
+  paypalSubscriptionId: string | null;
   role: string;
 };
 
@@ -47,7 +49,7 @@ export const getCurrentShop = cache(async (): Promise<CurrentShop | null> => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("shop_members")
-    .select("role, shops(id, name, agent_name, agent_tone, plan, trial_ends_at, subscription_status, current_period_start, current_period_end, cancel_at_period_end, stripe_customer_id)")
+    .select("role, shops(id, name, agent_name, agent_tone, plan, trial_ends_at, subscription_status, current_period_start, current_period_end, cancel_at_period_end, stripe_customer_id, billing_provider, paypal_subscription_id)")
     .eq("user_id", user.id)
     .limit(1)
     .maybeSingle();
@@ -67,6 +69,8 @@ export const getCurrentShop = cache(async (): Promise<CurrentShop | null> => {
     currentPeriodEnd: data.shops.current_period_end,
     cancelAtPeriodEnd: data.shops.cancel_at_period_end,
     hasStripeCustomer: !!data.shops.stripe_customer_id,
+    billingProvider: (data.shops.billing_provider as "stripe" | "paypal" | null) ?? null,
+    paypalSubscriptionId: data.shops.paypal_subscription_id,
     role: data.role,
   };
 });

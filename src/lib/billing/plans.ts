@@ -42,6 +42,8 @@ export type BillingState = {
   trialEndsAt: string | null;
   subscriptionStatus?: string | null;
   currentPeriodStart?: string | null;
+  /** End of the paid period; a cancelled plan keeps working until then. */
+  currentPeriodEnd?: string | null;
 };
 
 const isPaid = (plan: PlanTier) => plan === "starter" || plan === "growth";
@@ -68,7 +70,9 @@ export function aiAccess(shop: BillingState, usedThisPeriod: number, now: Date):
   if (plan === "trial" && shop.trialEndsAt && new Date(shop.trialEndsAt) <= now) {
     return { allowed: false, reason: "trial_ended" };
   }
-  if (isPaid(plan) && shop.subscriptionStatus && INACTIVE_STATUSES.has(shop.subscriptionStatus)) {
+  const paidUntil = shop.currentPeriodEnd ? new Date(shop.currentPeriodEnd) : null;
+  const stillPaidFor = shop.subscriptionStatus === "canceled" && paidUntil !== null && paidUntil > now;
+  if (isPaid(plan) && shop.subscriptionStatus && INACTIVE_STATUSES.has(shop.subscriptionStatus) && !stillPaidFor) {
     return { allowed: false, reason: "subscription_inactive" };
   }
   const limit = PLANS[plan].aiRepliesPerMonth;

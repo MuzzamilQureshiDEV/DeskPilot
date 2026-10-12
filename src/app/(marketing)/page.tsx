@@ -18,6 +18,8 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { PLANS } from "@/lib/billing/plans";
 import { formatPrice } from "@/lib/billing/status";
+import { paypalConfig } from "@/lib/paypal/client";
+import { loadPayPalPrices } from "@/lib/paypal/checkout";
 import { loadPrices } from "@/lib/stripe/checkout";
 import { cn } from "@/lib/utils";
 
@@ -69,7 +71,7 @@ const FAQ = [
 ];
 
 export default async function LandingPage() {
-  const prices = await loadPrices();
+  const prices = paypalConfig() ? await loadPayPalPrices() : await loadPrices();
   const priceOf = (plan: "starter" | "growth") => prices.find((p) => p.plan === plan);
   const tiers = [
     {

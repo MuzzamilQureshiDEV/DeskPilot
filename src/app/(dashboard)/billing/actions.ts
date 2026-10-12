@@ -1,10 +1,12 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { getAuthUser, getCurrentShop } from "@/lib/auth/session";
 import { SELF_SERVE_PLANS, type SelfServePlan } from "@/lib/billing/plans";
 import { serverEnv } from "@/lib/env";
+import { cancelPayPalSubscription, createPayPalSubscriptionUrl, revisePayPalSubscriptionUrl } from "@/lib/paypal/checkout";
 import { createCheckoutUrl, createPortalUrl, LIVE_STATUSES } from "@/lib/stripe/checkout";
 import { createClient } from "@/lib/supabase/server";
 
@@ -53,4 +55,38 @@ export async function openPortalAction(): Promise<BillingResult> {
     return { error: message(err) };
   }
   redirect(url);
+}
+
+/** Subscribe with PayPal, or switch plan if a PayPal subscription is already live. */
+export async function choosePayPalPlanAction(plan: SelfServePlan): Promise<BillingResult> {
+  if (!SELF_SERVE_PLANS.includes(plan)) return { error: "Unknown plan." };
+  const ctx = await ownerContext();
+  if (!ctx.ok) return { error: ctx.error };
+
+  let url: string;
+  try {
+    const live = ctx.shop.billingProvider === "paypal" && ctx.shop.paypalSubscriptionId && LIVE_STATUSES.has(ctx.shop.subscriptionStatus ?? "");
+    url = live
+      ? await revisePayPalSubscriptionUrl(ctx.shop.paypalSubscriptionId!, plan, ctx.appUrl)
+      : await createPayPalSubscriptionUrl(ctx.shop.id, ctx.user.email, plan, ctx.appUrl);
+  } catch (err) {
+    console.error("billing: paypal subscribe failed");
+    return { error: message(err) };
+  }
+  redirect(url);
+}
+
+/** Cancel the PayPal subscription. The plan stays active until the paid period ends. */
+export async function cancelPayPalAction(): Promise<BillingResult> {
+  const ctx = await ownerContext();
+  if (!ctx.ok) return { error: ctx.error };
+  if (ctx.shop.billingProvider !== "paypal" || !ctx.shop.paypalSubscriptionId) return { error: "There's no PayPal subscription to cancel." };
+  try {
+    await cancelPayPalSubscription(ctx.shop.paypalSubscriptionId);
+  } catch (err) {
+    console.error("billing: paypal cancel failed");
+    return { error: message(err) };
+  }
+  revalidatePath("/billing");
+  return undefined;
 }

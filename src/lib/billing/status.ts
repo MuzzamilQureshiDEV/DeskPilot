@@ -34,7 +34,9 @@ export function billingSummary(
       return { label: "Payment failed", tone: "bad", detail: "Update your card in Manage billing. Stripe will retry the payment." };
     case "canceled":
     case "incomplete_expired":
-      return { label: "Cancelled", tone: "bad", detail: "Choose a plan to turn the AI back on." };
+      return shop.currentPeriodEnd && new Date(shop.currentPeriodEnd) > now
+        ? { label: "Cancelling", tone: "warn", detail: `Cancelled. Your plan keeps working until ${fmt(shop.currentPeriodEnd)}.` }
+        : { label: "Cancelled", tone: "bad", detail: "Choose a plan to turn the AI back on." };
     case "unpaid":
     case "incomplete":
     case "paused":

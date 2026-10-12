@@ -56,7 +56,7 @@ export async function prepareRun(db: Db, ref: MessageRef, now: Date = new Date()
   const { shopId, conversationId, messageId } = ref;
 
   const [{ data: shop }, { data: conversation }, { data: message }] = await Promise.all([
-    db.from("shops").select("id, name, agent_name, agent_tone, plan, trial_ends_at, subscription_status, current_period_start").eq("id", shopId).maybeSingle(),
+    db.from("shops").select("id, name, agent_name, agent_tone, plan, trial_ends_at, subscription_status, current_period_start, current_period_end").eq("id", shopId).maybeSingle(),
     db
       .from("conversations")
       .select("id, channel, status, ai_paused, customer_id")
@@ -95,6 +95,7 @@ export async function prepareRun(db: Db, ref: MessageRef, now: Date = new Date()
     trialEndsAt: shop.trial_ends_at,
     subscriptionStatus: shop.subscription_status,
     currentPeriodStart: shop.current_period_start,
+    currentPeriodEnd: shop.current_period_end,
   };
   const { access } = await loadAiAccess(db, shopId, billing, now);
   if (!access.allowed) return { skip: access.reason };

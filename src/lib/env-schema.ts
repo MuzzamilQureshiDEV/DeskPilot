@@ -39,6 +39,13 @@ export const serverEnvSchema = publicEnvSchema.extend({
   STRIPE_WEBHOOK_SECRET: z.string().startsWith("whsec_").optional(),
   /** Shown on the Billing page for the custom Scale plan. */
   SALES_EMAIL: z.email().optional(),
+  /** PayPal subscriptions (billing). All optional: PayPal is hidden until configured. */
+  PAYPAL_ENV: z.enum(["sandbox", "live"]).default("sandbox"),
+  PAYPAL_CLIENT_ID: z.string().min(10).optional(),
+  PAYPAL_CLIENT_SECRET: z.string().min(10).optional(),
+  PAYPAL_WEBHOOK_ID: z.string().min(5).optional(),
+  PAYPAL_PLAN_STARTER: z.string().startsWith("P-").optional(),
+  PAYPAL_PLAN_GROWTH: z.string().startsWith("P-").optional(),
   /** Legal pages (Privacy Policy, Terms). */
   LEGAL_ENTITY_NAME: z.string().min(1).max(200).default("AstaDesk"),
   LEGAL_CONTACT_EMAIL: z.email().optional(),

@@ -410,6 +410,27 @@ export type Database = {
           },
         ]
       }
+      payment_events: {
+        Row: {
+          event_id: string
+          provider: string
+          received_at: string
+          type: string
+        }
+        Insert: {
+          event_id: string
+          provider: string
+          received_at?: string
+          type: string
+        }
+        Update: {
+          event_id?: string
+          provider?: string
+          received_at?: string
+          type?: string
+        }
+        Relationships: []
+      }
       privacy_requests: {
         Row: {
           completed_at: string | null
@@ -508,6 +529,7 @@ export type Database = {
         Row: {
           agent_name: string
           agent_tone: string
+          billing_provider: string | null
           cancel_at_period_end: boolean
           created_at: string | null
           current_period_end: string | null
@@ -516,6 +538,7 @@ export type Database = {
           inbound_email: string | null
           inbound_hash: string
           name: string
+          paypal_subscription_id: string | null
           plan: Database["public"]["Enums"]["plan_tier"]
           setup: Json
           shopify_connected_at: string | null
@@ -535,6 +558,7 @@ export type Database = {
         Insert: {
           agent_name?: string
           agent_tone?: string
+          billing_provider?: string | null
           cancel_at_period_end?: boolean
           created_at?: string | null
           current_period_end?: string | null
@@ -543,6 +567,7 @@ export type Database = {
           inbound_email?: string | null
           inbound_hash?: string
           name: string
+          paypal_subscription_id?: string | null
           plan?: Database["public"]["Enums"]["plan_tier"]
           setup?: Json
           shopify_connected_at?: string | null
@@ -562,6 +587,7 @@ export type Database = {
         Update: {
           agent_name?: string
           agent_tone?: string
+          billing_provider?: string | null
           cancel_at_period_end?: boolean
           created_at?: string | null
           current_period_end?: string | null
@@ -570,6 +596,7 @@ export type Database = {
           inbound_email?: string | null
           inbound_hash?: string
           name?: string
+          paypal_subscription_id?: string | null
           plan?: Database["public"]["Enums"]["plan_tier"]
           setup?: Json
           shopify_connected_at?: string | null

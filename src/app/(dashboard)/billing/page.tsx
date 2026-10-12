@@ -9,11 +9,13 @@ import { PLANS, planOf, usagePeriodStart, type SelfServePlan } from "@/lib/billi
 import { billingSummary, formatPrice } from "@/lib/billing/status";
 import { loadAiAccess } from "@/lib/billing/usage";
 import { serverEnv } from "@/lib/env";
+import { paypalConfig } from "@/lib/paypal/client";
+import { loadPayPalPrices, paypalManageUrl } from "@/lib/paypal/checkout";
 import { LIVE_STATUSES, loadPrices } from "@/lib/stripe/checkout";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
-import { ChoosePlanButton, ManageBillingButton } from "./billing-buttons";
+import { ChoosePlanButton, ManageBillingButton, PayPalManage, PayPalPlanButton } from "./billing-buttons";
 
 export const metadata: Metadata = { title: "Billing · AstaDesk" };
 
@@ -40,7 +42,7 @@ export default async function BillingPage({ searchParams }: PageProps<"/billing"
   const now = new Date();
   const [{ used, access }, prices, params] = await Promise.all([
     loadAiAccess(await createClient(), shop.id, shop, now),
-    loadPrices(),
+    paypalConfig() ? loadPayPalPrices() : loadPrices(),
     searchParams,
   ]);
   const plan = planOf(shop.plan);
@@ -51,6 +53,9 @@ export default async function BillingPage({ searchParams }: PageProps<"/billing"
   const subscribed = !!shop.subscriptionStatus && LIVE_STATUSES.has(shop.subscriptionStatus);
   const salesEmail = serverEnv().SALES_EMAIL;
   const checkout = params.checkout;
+  const paypalReturn = params.paypal;
+  const usePayPal = !!paypalConfig();
+  const onPayPal = shop.billingProvider === "paypal" && !!shop.paypalSubscriptionId;
 
   return (
     <PageShell>
@@ -59,6 +64,16 @@ export default async function BillingPage({ searchParams }: PageProps<"/billing"
       {checkout === "success" && (
         <p role="status" className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
           Payment received, thank you! Your plan updates here within a few seconds. Refresh if it hasn&apos;t yet.
+        </p>
+      )}
+      {paypalReturn === "success" && (
+        <p role="status" className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
+          PayPal approved, thank you! Your plan updates here within a few seconds. Refresh if it hasn&apos;t yet.
+        </p>
+      )}
+      {paypalReturn === "cancel" && (
+        <p role="status" className="rounded-lg border px-4 py-3 text-sm text-muted-foreground">
+          PayPal checkout was cancelled. You haven&apos;t been charged.
         </p>
       )}
       {checkout === "cancel" && (
@@ -101,7 +116,10 @@ export default async function BillingPage({ searchParams }: PageProps<"/billing"
               </p>
             )}
           </div>
-          {isOwner && shop.hasStripeCustomer && (
+          {isOwner && onPayPal && (
+            <PayPalManage manageUrl={paypalManageUrl()} cancelled={shop.subscriptionStatus === "canceled"} />
+          )}
+          {isOwner && !onPayPal && shop.hasStripeCustomer && (
             <div className="self-start">
               <ManageBillingButton />
               <p className="mt-1 text-xs text-muted-foreground">Change plan, update your card, see invoices or cancel.</p>
@@ -141,6 +159,11 @@ export default async function BillingPage({ searchParams }: PageProps<"/billing"
                   <div className="mt-auto">
                     {current ? (
                       <Badge>Your current plan</Badge>
+                    ) : isOwner && usePayPal ? (
+                      <PayPalPlanButton
+                        plan={price.plan}
+                        label={onPayPal && subscribed ? `Switch to ${price.plan} with PayPal` : `Subscribe with PayPal`}
+                      />
                     ) : isOwner ? (
                       <ChoosePlanButton
                         plan={price.plan}
