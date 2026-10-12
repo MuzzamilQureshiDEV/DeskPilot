@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
+import { confirmationText } from "@/lib/actions/confirmation";
 import { summarizeAction, type ActionType } from "@/lib/inbox/action-summary";
 import {
   ActionFailed,
@@ -25,12 +26,16 @@ export type ClaimedAction = {
   conversationId: string;
   type: ActionType;
   payload: Json;
-  options: { notifyCustomer: boolean; restock: boolean };
+  options: { notifyCustomer: boolean; restock: boolean; confirmCustomer: boolean };
 };
 
 export type Outcome = { ok: true; result: Json } | { ok: false; error: string };
 
-const optionsSchema = z.object({ notify_customer: z.boolean().default(true), restock: z.boolean().default(false) });
+const optionsSchema = z.object({
+  notify_customer: z.boolean().default(true),
+  restock: z.boolean().default(false),
+  confirm_customer: z.boolean().default(true),
+});
 
 export async function claimAction(db: Db, shopId: string, actionId: string): Promise<ClaimedAction | null> {
   const { data } = await db
@@ -50,7 +55,7 @@ export async function claimAction(db: Db, shopId: string, actionId: string): Pro
     conversationId: row.conversation_id,
     type: row.type,
     payload: row.payload,
-    options: { notifyCustomer: opts.notify_customer, restock: opts.restock },
+    options: { notifyCustomer: opts.notify_customer, restock: opts.restock, confirmCustomer: opts.confirm_customer },
   };
 }
 
@@ -141,6 +146,21 @@ export async function finishAction(db: Db, action: ClaimedAction, outcome: Outco
     { onConflict: "shop_id,external_message_id", ignoreDuplicates: true },
   );
 
+  if (!outcome.ok) {
+    // A person approved this, but it didn't happen: hand the conversation back to the team.
+    const s = summarizeAction(action.type, action.payload);
+    await db
+      .from("conversations")
+      .update({
+        status: "escalated",
+        escalated_at: new Date().toISOString(),
+        escalation_reason: `Approved "${s.title}" couldn't be completed in Shopify: ${outcome.error}`.slice(0, 500),
+      })
+      .eq("id", action.conversationId)
+      .eq("shop_id", action.shopId);
+    return;
+  }
+
   const { count } = await db
     .from("action_requests")
     .select("id", { count: "exact", head: true })
@@ -155,6 +175,47 @@ export async function finishAction(db: Db, action: ClaimedAction, outcome: Outco
       .eq("shop_id", action.shopId)
       .eq("status", "awaiting_approval");
   }
+}
+
+/**
+ * After a successful action, Ava tells the customer in the same conversation
+ * (chat shows it on the next poll; email is delivered by the caller). Only for
+ * actions that really ran, and only if the approver left the option on.
+ * Idempotent: one message per action (`confirm:<id>`). Returns its id, or null.
+ */
+export async function confirmCustomer(db: Db, action: ClaimedAction, outcome: Outcome): Promise<string | null> {
+  if (!outcome.ok || !action.options.confirmCustomer) return null;
+  const { data: row } = await db
+    .from("action_requests")
+    .select("status")
+    .eq("id", action.id)
+    .eq("shop_id", action.shopId)
+    .maybeSingle();
+  if (row?.status !== "executed") return null;
+
+  const body = confirmationText(action.type, action.payload, outcome.result);
+  if (!body) return null;
+
+  const externalId = `confirm:${action.id}`;
+  const now = new Date().toISOString();
+  const { data: inserted } = await db
+    .from("messages")
+    .upsert(
+      { shop_id: action.shopId, conversation_id: action.conversationId, role: "ai", status: "sent", body, external_message_id: externalId },
+      { onConflict: "shop_id,external_message_id", ignoreDuplicates: true },
+    )
+    .select("id");
+  if (inserted?.[0]) {
+    await db.from("conversations").update({ last_message_at: now }).eq("id", action.conversationId).eq("shop_id", action.shopId);
+    return inserted[0].id;
+  }
+  const { data: existing } = await db
+    .from("messages")
+    .select("id")
+    .eq("shop_id", action.shopId)
+    .eq("external_message_id", externalId)
+    .maybeSingle();
+  return existing?.id ?? null;
 }
 
 /** After all retries: never leave an action stuck in approved/executing. */
@@ -178,7 +239,7 @@ export async function markActionFailed(db: Db, shopId: string, actionId: string,
       conversationId: data.conversation_id,
       type: data.type,
       payload: data.payload,
-      options: { notifyCustomer: false, restock: false },
+      options: { notifyCustomer: false, restock: false, confirmCustomer: false },
     },
     { ok: false, error },
   );

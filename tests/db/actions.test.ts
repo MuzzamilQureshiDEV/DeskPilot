@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-import { claimAction, finishAction, markActionFailed, runAction } from "@/lib/actions/execute";
+import { claimAction, confirmCustomer, finishAction, markActionFailed, runAction } from "@/lib/actions/execute";
 import type { ShopifyConn } from "@/lib/shopify/mutations";
 
 import { adminClient, createTestUser, deleteTestUser, hasDbEnv, type Db, type TestUser } from "./helpers";
@@ -68,7 +68,7 @@ describe.skipIf(!hasDbEnv)("action approvals and execution (live DB)", () => {
       expect(await actionRow(actionId)).toMatchObject({
         status: "approved",
         decided_by: user(a).id,
-        options: { notify_customer: false, restock: false },
+        options: { notify_customer: false, restock: false, confirm_customer: true },
       });
       // A second click is a no-op.
       const again = await user(a).client.rpc("approve_action_request", { p_id: actionId, p_options: {} });
@@ -125,7 +125,7 @@ describe.skipIf(!hasDbEnv)("action approvals and execution (live DB)", () => {
       await user(a).client.rpc("approve_action_request", { p_id: actionId, p_options: { restock: true } });
       expect(await claimAction(admin, shopB, actionId)).toBeNull(); // wrong shop
       const claimed = await claimAction(admin, shopA, actionId);
-      expect(claimed).toMatchObject({ id: actionId, type: "cancel", options: { notifyCustomer: true, restock: true } });
+      expect(claimed).toMatchObject({ id: actionId, type: "cancel", options: { notifyCustomer: true, restock: true, confirmCustomer: true } });
       expect(await claimAction(admin, shopA, actionId)).toBeNull(); // already executing
     });
 
@@ -142,6 +142,28 @@ describe.skipIf(!hasDbEnv)("action approvals and execution (live DB)", () => {
       const { data: notes } = await admin.from("messages").select("body").eq("conversation_id", conversationId).eq("role", "system");
       expect(notes).toEqual([{ body: "Order #1042 is being cancelled in Shopify." }]);
       expect((await admin.from("conversations").select("status").eq("id", conversationId).single()).data?.status).toBe("open");
+
+      // Ava confirms to the customer, once, even if the step is retried.
+      const first = await confirmCustomer(admin, claimed, { ok: true, result });
+      const second = await confirmCustomer(admin, claimed, { ok: true, result });
+      expect(first).not.toBeNull();
+      expect(second).toBe(first);
+      const { data: replies } = await admin.from("messages").select("body, status").eq("conversation_id", conversationId).eq("role", "ai");
+      expect(replies).toHaveLength(1);
+      expect(replies?.[0]).toMatchObject({ status: "sent", body: expect.stringContaining("Order #1042 has been cancelled.") });
+    });
+
+    it("no confirmation when the approver turned it off", async () => {
+      const { actionId, conversationId } = await pendingCancel();
+      await user(a).client.rpc("approve_action_request", { p_id: actionId, p_options: { confirm_customer: false } });
+      expect((await actionRow(actionId))?.options).toMatchObject({ confirm_customer: false });
+      const claimed = await claimAction(admin, shopA, actionId);
+      if (!claimed) throw new Error("not claimed");
+      const result = await runAction(conn(), claimed);
+      await finishAction(admin, claimed, { ok: true, result });
+      expect(await confirmCustomer(admin, claimed, { ok: true, result })).toBeNull();
+      const { count } = await admin.from("messages").select("id", { count: "exact", head: true }).eq("conversation_id", conversationId).eq("role", "ai");
+      expect(count).toBe(0);
     });
 
     it("failure: failed with the reason, and stuck actions are released", async () => {
@@ -153,6 +175,10 @@ describe.skipIf(!hasDbEnv)("action approvals and execution (live DB)", () => {
       expect(await actionRow(actionId)).toMatchObject({ status: "failed", error: "This order has already shipped, so it can't be cancelled." });
       const { data: notes } = await admin.from("messages").select("body").eq("conversation_id", conversationId).eq("role", "system");
       expect(notes?.[0]?.body).toContain("Couldn't complete");
+      // Nothing goes to the customer; the team gets it back as an escalation.
+      expect(await confirmCustomer(admin, claimed, { ok: false, error: "shipped" })).toBeNull();
+      const { data: conv } = await admin.from("conversations").select("status, escalation_reason").eq("id", conversationId).single();
+      expect(conv).toMatchObject({ status: "escalated", escalation_reason: expect.stringContaining("couldn't be completed in Shopify") });
 
       const stuck = await pendingCancel();
       await user(a).client.rpc("approve_action_request", { p_id: stuck.actionId, p_options: {} });

@@ -2,7 +2,8 @@ import { NonRetriableError } from "inngest";
 
 import { inngest } from "@/inngest/client";
 import { ACTION_APPROVED, actionApprovedSchema } from "@/inngest/events";
-import { claimAction, finishAction, markActionFailed, runAction, type Outcome } from "@/lib/actions/execute";
+import { claimAction, confirmCustomer, finishAction, markActionFailed, runAction, type Outcome } from "@/lib/actions/execute";
+import { deliverMessage, TransientDeliveryError } from "@/lib/email/outbound";
 import { ActionFailed } from "@/lib/shopify/mutations";
 import { getShopifyAccessToken, ShopifyNotConnected, ShopifyReauthRequired } from "@/lib/shopify/tokens";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -55,6 +56,17 @@ export const executeAction = inngest.createFunction(
     });
 
     await step.run("finish", () => finishAction(createAdminClient(), action, outcome));
-    return outcome.ok ? { executed: actionId } : { failed: actionId, error: outcome.error };
+
+    // Done in Shopify: Ava tells the customer in the same conversation. Chat shows it
+    // on the next poll; email is delivered here (never re-sent once delivered).
+    const confirmationId = await step.run("confirm", () => confirmCustomer(createAdminClient(), action, outcome));
+    if (confirmationId) {
+      await step.run("deliver-confirmation", async () => {
+        const res = await deliverMessage(createAdminClient(), shopId, confirmationId);
+        if (res.status === "failed" && res.transient) throw new TransientDeliveryError(res.error);
+        return res;
+      });
+    }
+    return outcome.ok ? { executed: actionId, confirmed: !!confirmationId } : { failed: actionId, error: outcome.error };
   },
 );

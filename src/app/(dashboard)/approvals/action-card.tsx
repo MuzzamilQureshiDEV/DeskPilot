@@ -7,6 +7,7 @@ import { useState, useTransition } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { ActionSummary } from "@/lib/inbox/action-summary";
+import { AGENT_NAME } from "@/lib/settings/agent";
 import { cn } from "@/lib/utils";
 
 import { approveAction, rejectAction } from "./actions";
@@ -42,13 +43,14 @@ export function ActionCard({ action, compact = false }: { action: ActionCardData
   const status = STATUS[action.status] ?? { label: action.status, variant: "outline" as const };
   const [confirming, setConfirming] = useState(false);
   const [notify, setNotify] = useState(true);
+  const [confirmToCustomer, setConfirmToCustomer] = useState(true);
   const [restock, setRestock] = useState(summary.type === "cancel");
   const [pending, start] = useTransition();
   const [message, setMessage] = useState<{ tone: "error" | "info"; text: string } | null>(null);
 
   const approve = () =>
     start(async () => {
-      const res = await approveAction({ id: action.id, notifyCustomer: notify, restock });
+      const res = await approveAction({ id: action.id, notifyCustomer: notify, restock, confirmCustomer: confirmToCustomer });
       setConfirming(false);
       setMessage(
         !res.ok
@@ -121,6 +123,15 @@ export function ActionCard({ action, compact = false }: { action: ActionCardData
           <label className="flex items-center gap-2 text-xs">
             <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} className="accent-primary" />
             Email the customer from Shopify
+          </label>
+          <label className="flex items-center gap-2 text-xs">
+            <input
+              type="checkbox"
+              checked={confirmToCustomer}
+              onChange={(e) => setConfirmToCustomer(e.target.checked)}
+              className="accent-primary"
+            />
+            {AGENT_NAME} tells the customer in this conversation when it&apos;s done
           </label>
           {summary.type !== "address_change" && (
             <label className="flex items-center gap-2 text-xs">

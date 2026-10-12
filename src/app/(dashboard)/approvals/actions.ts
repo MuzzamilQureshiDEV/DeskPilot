@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export type DecisionResult = { ok: true; queued: boolean } | { ok: false; error: string };
 
-const approveSchema = z.object({ id: z.uuid(), notifyCustomer: z.boolean(), restock: z.boolean() });
+const approveSchema = z.object({ id: z.uuid(), notifyCustomer: z.boolean(), restock: z.boolean(), confirmCustomer: z.boolean().default(true) });
 
 /**
  * A signed-in member approves a pending action (CLAUDE.md rule 2). The DB
@@ -24,7 +24,7 @@ export async function approveAction(input: unknown): Promise<DecisionResult> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("approve_action_request", {
     p_id: parsed.data.id,
-    p_options: { notify_customer: parsed.data.notifyCustomer, restock: parsed.data.restock },
+    p_options: { notify_customer: parsed.data.notifyCustomer, restock: parsed.data.restock, confirm_customer: parsed.data.confirmCustomer },
   });
   revalidatePath("/", "layout");
   if (error) return { ok: false, error: "Couldn't approve this request." };
