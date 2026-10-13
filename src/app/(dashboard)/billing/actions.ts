@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { getAuthUser, getCurrentShop } from "@/lib/auth/session";
+import { plansLocked } from "@/lib/billing/launch-lock";
 import { SELF_SERVE_PLANS, type SelfServePlan } from "@/lib/billing/plans";
+import { LAUNCH_LABEL } from "@/lib/launch";
 import { serverEnv } from "@/lib/env";
 import { cancelPayPalSubscription, createPayPalSubscriptionUrl, revisePayPalSubscriptionUrl } from "@/lib/paypal/checkout";
 import { createCheckoutUrl, createPortalUrl, LIVE_STATUSES } from "@/lib/stripe/checkout";
@@ -21,11 +23,14 @@ async function ownerContext() {
   return { ok: true, user: { email: user.email }, shop, appUrl } as const;
 }
 
+const NOT_YET = `Plans open at launch on ${LAUNCH_LABEL}.`;
+
 const message = (err: unknown) => (err instanceof Error && err.message.length < 120 ? err.message : "Something went wrong. Please try again.");
 
 /** Start Stripe Checkout for a plan, or open the portal if a subscription already exists. */
 export async function choosePlanAction(plan: SelfServePlan): Promise<BillingResult> {
   if (!SELF_SERVE_PLANS.includes(plan)) return { error: "Unknown plan." };
+  if (plansLocked()) return { error: NOT_YET };
   const ctx = await ownerContext();
   if (!ctx.ok) return { error: ctx.error };
 
@@ -60,6 +65,7 @@ export async function openPortalAction(): Promise<BillingResult> {
 /** Subscribe with PayPal, or switch plan if a PayPal subscription is already live. */
 export async function choosePayPalPlanAction(plan: SelfServePlan): Promise<BillingResult> {
   if (!SELF_SERVE_PLANS.includes(plan)) return { error: "Unknown plan." };
+  if (plansLocked()) return { error: NOT_YET };
   const ctx = await ownerContext();
   if (!ctx.ok) return { error: ctx.error };
 

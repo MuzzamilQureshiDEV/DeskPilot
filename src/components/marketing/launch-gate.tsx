@@ -32,11 +32,22 @@ const noClock = () => null;
  * Blurs its children behind a "Launching soon" countdown until `launchAt`,
  * then shows them as normal (no reload needed).
  */
-export function LaunchGate({ launchAt, launchLabel, children }: { launchAt: string; launchLabel: string; children: ReactNode }) {
+export function LaunchGate({
+  launchAt,
+  launchLabel,
+  enabled = true,
+  children,
+}: {
+  launchAt: string;
+  launchLabel: string;
+  /** False shows the children as normal (e.g. test payments before launch). */
+  enabled?: boolean;
+  children: ReactNode;
+}) {
   const target = new Date(launchAt).getTime();
   const now = useSyncExternalStore(subscribe, nowSecond, noClock);
 
-  if (now !== null && now >= target) return <>{children}</>;
+  if (!enabled || (now !== null && now >= target)) return <>{children}</>;
 
   const values = now === null ? null : parts(target - now);
 

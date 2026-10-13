@@ -5,10 +5,12 @@ import { EmptyState, PageHeader, PageShell } from "@/components/dashboard/page-h
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCurrentShop } from "@/lib/auth/session";
+import { plansLocked } from "@/lib/billing/launch-lock";
 import { PLANS, planOf, usagePeriodStart } from "@/lib/billing/plans";
 import { billingSummary } from "@/lib/billing/status";
 import { loadAiAccess } from "@/lib/billing/usage";
 import { serverEnv } from "@/lib/env";
+import { LAUNCH_AT, LAUNCH_LABEL } from "@/lib/launch";
 import { paypalConfig } from "@/lib/paypal/client";
 import { loadPayPalPrices, paypalManageUrl } from "@/lib/paypal/checkout";
 import { LIVE_STATUSES, loadPrices } from "@/lib/stripe/checkout";
@@ -16,6 +18,7 @@ import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
 import { PricingCards } from "@/components/billing/pricing-cards";
+import { LaunchGate } from "@/components/marketing/launch-gate";
 import { ChoosePlanButton, ManageBillingButton, PayPalManage, PayPalPlanButton } from "./billing-buttons";
 
 export const metadata: Metadata = { title: "Billing · AstaDesk" };
@@ -54,6 +57,7 @@ export default async function BillingPage({ searchParams }: PageProps<"/billing"
   const paypalReturn = params.paypal;
   const usePayPal = !!paypalConfig();
   const onPayPal = shop.billingProvider === "paypal" && !!shop.paypalSubscriptionId;
+  const locked = plansLocked(now);
 
   return (
     <PageShell>
@@ -126,32 +130,34 @@ export default async function BillingPage({ searchParams }: PageProps<"/billing"
       {prices.length === 0 ? (
         <EmptyState icon={CreditCard} title="Plans aren't available yet" description="Billing is being set up. Please check back soon." />
       ) : (
-        <PricingCards
-          prices={prices}
-          cta={(p) => {
-            const current = plan === p && subscribed;
-            if (current) return <Badge>Your current plan</Badge>;
-            if (!isOwner) return null;
-            const label = subscribed ? `Switch to ${p}` : `Choose ${p}`;
-            return (
-              <div className="flex flex-col gap-2">
-                {usePayPal ? (
-                  <PayPalPlanButton plan={p} label={onPayPal && subscribed ? `${label} with PayPal` : "Subscribe with PayPal"} />
-                ) : (
-                  <ChoosePlanButton plan={p} variant={p === "growth" ? "default" : "outline"} label={label} />
-                )}
-                {p === "scale" && salesEmail && (
-                  <a
-                    href={`mailto:${salesEmail}?subject=AstaDesk%20Scale%20plan`}
-                    className="text-center text-xs underline underline-offset-2 opacity-80"
-                  >
-                    Need more than 1,000 replies? Talk to us
-                  </a>
-                )}
-              </div>
-            );
-          }}
-        />
+        <LaunchGate launchAt={LAUNCH_AT} launchLabel={LAUNCH_LABEL} enabled={locked}>
+          <PricingCards
+            prices={prices}
+            cta={(p) => {
+              const current = plan === p && subscribed;
+              if (current) return <Badge>Your current plan</Badge>;
+              if (!isOwner) return null;
+              const label = subscribed ? `Switch to ${p}` : `Choose ${p}`;
+              return (
+                <div className="flex flex-col gap-2">
+                  {usePayPal ? (
+                    <PayPalPlanButton plan={p} label={onPayPal && subscribed ? `${label} with PayPal` : "Subscribe with PayPal"} />
+                  ) : (
+                    <ChoosePlanButton plan={p} variant={p === "growth" ? "default" : "outline"} label={label} />
+                  )}
+                  {p === "scale" && salesEmail && (
+                    <a
+                      href={`mailto:${salesEmail}?subject=AstaDesk%20Scale%20plan`}
+                      className="text-center text-xs underline underline-offset-2 opacity-80"
+                    >
+                      Need more than 1,000 replies? Talk to us
+                    </a>
+                  )}
+                </div>
+              );
+            }}
+          />
+        </LaunchGate>
       )}
 
       <p className="text-xs text-muted-foreground">
