@@ -219,7 +219,8 @@ export async function confirmCustomer(db: Db, action: ClaimedAction, outcome: Ou
 }
 
 /** After all retries: never leave an action stuck in approved/executing. */
-export async function markActionFailed(db: Db, shopId: string, actionId: string, error: string): Promise<void> {
+/** Returns the conversation id when it marked the action failed (it escalates the conversation), else null. */
+export async function markActionFailed(db: Db, shopId: string, actionId: string, error: string): Promise<string | null> {
   const { data } = await db
     .from("action_requests")
     .select("id, shop_id, conversation_id, type, payload, status")
@@ -227,7 +228,7 @@ export async function markActionFailed(db: Db, shopId: string, actionId: string,
     .eq("shop_id", shopId)
     .in("status", ["approved", "executing"])
     .maybeSingle();
-  if (!data) return;
+  if (!data) return null;
   if (data.status === "approved") {
     await db.from("action_requests").update({ status: "executing" }).eq("id", actionId).eq("shop_id", shopId).eq("status", "approved");
   }
@@ -243,4 +244,5 @@ export async function markActionFailed(db: Db, shopId: string, actionId: string,
     },
     { ok: false, error },
   );
+  return data.conversation_id;
 }

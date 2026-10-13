@@ -27,6 +27,8 @@ export type OutgoingEmail = {
   fromName: string;
   subject: string;
   text: string;
+  /** Optional HTML version (team alerts); customer replies stay plain text. */
+  html?: string;
   replyTo?: string;
   inReplyTo?: string | null;
 };
@@ -45,6 +47,7 @@ export function postmarkBody(email: OutgoingEmail, from: string) {
     To: email.to,
     Subject: email.subject.slice(0, 500),
     TextBody: email.text,
+    ...(email.html ? { HtmlBody: email.html } : {}),
     ...(email.replyTo ? { ReplyTo: email.replyTo } : {}),
     ...(email.inReplyTo
       ? { Headers: [{ Name: "In-Reply-To", Value: `<${email.inReplyTo}>` }, { Name: "References", Value: `<${email.inReplyTo}>` }] }

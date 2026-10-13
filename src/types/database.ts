@@ -538,6 +538,8 @@ export type Database = {
           inbound_email: string | null
           inbound_hash: string
           name: string
+          notify_approvals: boolean
+          notify_escalations: boolean
           paypal_subscription_id: string | null
           plan: Database["public"]["Enums"]["plan_tier"]
           setup: Json
@@ -567,6 +569,8 @@ export type Database = {
           inbound_email?: string | null
           inbound_hash?: string
           name: string
+          notify_approvals?: boolean
+          notify_escalations?: boolean
           paypal_subscription_id?: string | null
           plan?: Database["public"]["Enums"]["plan_tier"]
           setup?: Json
@@ -596,6 +600,8 @@ export type Database = {
           inbound_email?: string | null
           inbound_hash?: string
           name?: string
+          notify_approvals?: boolean
+          notify_escalations?: boolean
           paypal_subscription_id?: string | null
           plan?: Database["public"]["Enums"]["plan_tier"]
           setup?: Json
@@ -632,6 +638,45 @@ export type Database = {
           type?: string
         }
         Relationships: []
+      }
+      team_alerts: {
+        Row: {
+          conversation_id: string
+          key: string
+          kind: string
+          sent_at: string
+          shop_id: string
+        }
+        Insert: {
+          conversation_id: string
+          key: string
+          kind: string
+          sent_at?: string
+          shop_id: string
+        }
+        Update: {
+          conversation_id?: string
+          key?: string
+          kind?: string
+          sent_at?: string
+          shop_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_alerts_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_alerts_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       usage_events: {
         Row: {

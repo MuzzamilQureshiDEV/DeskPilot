@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { NonRetriableError } from "inngest";
 
 import { inngest } from "@/inngest/client";
-import { MESSAGE_RECEIVED, messageReceivedSchema } from "@/inngest/events";
+import { enqueueTeamAlert, MESSAGE_RECEIVED, messageReceivedSchema, TEAM_ALERT } from "@/inngest/events";
 import { agentClient } from "@/lib/ai/client";
 import { markFailed, prepareRun, runAndDecide, saveResult } from "@/lib/ai/process-message";
 import { deliverMessage, TransientDeliveryError } from "@/lib/email/outbound";
@@ -34,6 +34,13 @@ export const processMessage = inngest.createFunction(
       if (error.message.startsWith("Email delivery failed")) return;
       const reason = error.message.startsWith("AI request rejected") ? "the AI service rejected the request" : "an error";
       await markFailed(createAdminClient(), parsed.data, reason);
+      // Tell the team; a failed alert must not hide the escalation itself.
+      await enqueueTeamAlert({
+        shopId: parsed.data.shopId,
+        conversationId: parsed.data.conversationId,
+        kind: "escalated",
+        key: `fail:${parsed.data.messageId}`,
+      }).catch(() => console.error("process-message: team alert not queued"));
     },
   },
   async ({ event, step }) => {
@@ -71,6 +78,15 @@ export const processMessage = inngest.createFunction(
             return res;
           })
         : null;
+
+    // Ava handed it over, or a money action waits: email the store's team.
+    const status = result.conversation.status;
+    if (status === "escalated" || status === "awaiting_approval") {
+      await step.sendEvent("alert-team", {
+        name: TEAM_ALERT,
+        data: { shopId: ref.shopId, conversationId: ref.conversationId, kind: status === "escalated" ? "escalated" : "approval", key: aiMessageId },
+      });
+    }
 
     return {
       aiMessageId,

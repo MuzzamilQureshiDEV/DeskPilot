@@ -1,7 +1,7 @@
 import { NonRetriableError } from "inngest";
 
 import { inngest } from "@/inngest/client";
-import { ACTION_APPROVED, actionApprovedSchema } from "@/inngest/events";
+import { ACTION_APPROVED, actionApprovedSchema, enqueueTeamAlert, TEAM_ALERT } from "@/inngest/events";
 import { claimAction, confirmCustomer, finishAction, markActionFailed, runAction, type Outcome } from "@/lib/actions/execute";
 import { deliverMessage, TransientDeliveryError } from "@/lib/email/outbound";
 import { ActionFailed } from "@/lib/shopify/mutations";
@@ -26,12 +26,17 @@ export const executeAction = inngest.createFunction(
       const parsed = actionApprovedSchema.safeParse(event.data.event.data);
       reportJobFailure("execute-action", error, parsed.success ? { shopId: parsed.data.shopId, actionId: parsed.data.actionId } : {});
       if (!parsed.success) return;
-      await markActionFailed(
+      const conversationId = await markActionFailed(
         createAdminClient(),
         parsed.data.shopId,
         parsed.data.actionId,
         "Shopify didn't respond after several tries. Check the order in Shopify before trying again.",
       );
+      if (conversationId) {
+        await enqueueTeamAlert({ shopId: parsed.data.shopId, conversationId, kind: "escalated", key: `action:${parsed.data.actionId}` }).catch(() =>
+          console.error("execute-action: team alert not queued"),
+        );
+      }
     },
   },
   async ({ event, step }) => {
@@ -56,6 +61,14 @@ export const executeAction = inngest.createFunction(
     });
 
     await step.run("finish", () => finishAction(createAdminClient(), action, outcome));
+
+    // It didn't happen in Shopify: the conversation is escalated, so tell the team.
+    if (!outcome.ok) {
+      await step.sendEvent("alert-team", {
+        name: TEAM_ALERT,
+        data: { shopId, conversationId: action.conversationId, kind: "escalated", key: `action:${actionId}` },
+      });
+    }
 
     // Done in Shopify: Ava tells the customer in the same conversation. Chat shows it
     // on the next poll; email is delivered here (never re-sent once delivered).

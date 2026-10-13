@@ -1,11 +1,11 @@
-import { CheckCircle2, Clock, ExternalLink, Lock, Mail, MessageCircle, ShieldAlert } from "lucide-react";
+import { Bell, CheckCircle2, Clock, ExternalLink, Lock, Mail, MessageCircle, ShieldAlert } from "lucide-react";
 import type { Metadata } from "next";
 
 import { PageHeader, PageShell } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getCurrentShop } from "@/lib/auth/session";
+import { getAuthUser, getCurrentShop } from "@/lib/auth/session";
 import { shopAddress } from "@/lib/email/addresses";
 import { emailConfig } from "@/lib/email/outbound";
 import { serverEnv } from "@/lib/env";
@@ -14,6 +14,7 @@ import { createClient } from "@/lib/supabase/server";
 
 import { AgentForm } from "./agent-form";
 import { CopyAddress, TestEmailButton } from "./email-card";
+import { NotificationsForm } from "./notifications-card";
 import { DataRequestActions } from "./privacy-card";
 
 export const metadata: Metadata = { title: "Settings · AstaDesk" };
@@ -49,7 +50,7 @@ export default async function SettingsPage() {
 
   const [{ data: row }, { data: filtered }, { data: privacy }, { count: chats }, { data: store }] = shop
     ? await Promise.all([
-        supabase.from("shops").select("inbound_hash, setup").eq("id", shop.id).single(),
+        supabase.from("shops").select("inbound_hash, setup, notify_escalations, notify_approvals").eq("id", shop.id).single(),
         supabase
           .from("filtered_emails")
           .select("reason, created_at")
@@ -78,6 +79,7 @@ export default async function SettingsPage() {
   const confirmation = obj(setup.forwarding_confirmation);
   const address = inboundBase && row ? shopAddress(inboundBase, row.inbound_hash) : null;
   const agent = shop?.agentName ?? "your agent";
+  const user = await getAuthUser();
 
   return (
     <PageShell>
@@ -90,6 +92,23 @@ export default async function SettingsPage() {
         </CardHeader>
         <CardContent>
           <AgentForm preset={preset} customTone={preset === "custom" ? (shop?.agentTone ?? "") : ""} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Bell className="size-5 text-primary" aria-hidden />
+            Notifications
+          </CardTitle>
+          <CardDescription>Get an email the moment {agent} needs you, so no customer waits unnoticed.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <NotificationsForm
+            initial={{ escalations: row?.notify_escalations ?? true, approvals: row?.notify_approvals ?? true }}
+            canEdit={shop?.role === "owner"}
+            email={user?.email ?? "your login email"}
+          />
         </CardContent>
       </Card>
 

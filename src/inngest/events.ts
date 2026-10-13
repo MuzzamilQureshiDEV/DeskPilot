@@ -26,3 +26,19 @@ export type ActionApproved = z.infer<typeof actionApprovedSchema>;
 export async function enqueueAction(data: ActionApproved): Promise<void> {
   await inngest.send({ name: ACTION_APPROVED, data: actionApprovedSchema.parse(data) });
 }
+
+/** A conversation needs a person (escalated) or an approval: email the store's team. */
+export const TEAM_ALERT = "deskpilot/team.alert";
+
+export const teamAlertSchema = z.object({
+  shopId: z.uuid(),
+  conversationId: z.uuid(),
+  kind: z.enum(["escalated", "approval"]),
+  /** Makes each alert unique (e.g. the AI message id); repeats with the same key are ignored. */
+  key: z.string().min(1).max(200),
+});
+export type TeamAlert = z.infer<typeof teamAlertSchema>;
+
+export async function enqueueTeamAlert(data: TeamAlert): Promise<void> {
+  await inngest.send({ name: TEAM_ALERT, data: teamAlertSchema.parse(data) });
+}
