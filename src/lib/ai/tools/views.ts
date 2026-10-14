@@ -64,6 +64,7 @@ export function trackingView(o: OrderDetail): Json {
 export function productView(p: ProductSummary): Json {
   return {
     title: p.title,
+    ...(p.url ? { link: p.url } : {}),
     type: p.productType,
     description: p.description,
     price:

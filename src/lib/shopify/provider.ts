@@ -89,6 +89,8 @@ const orderDetailNode = orderSummaryNode.extend({
 });
 
 const productNode = z.object({
+  /** Null when the product isn't published on the Online Store. */
+  onlineStoreUrl: z.string().nullable().optional(),
   id: z.string(),
   title: z.string(),
   description: z.string(),
@@ -287,6 +289,7 @@ export function toProduct(p: ProductNode): ProductSummary {
   return {
     id: p.id,
     title: p.title,
+    url: p.onlineStoreUrl ?? null,
     description: p.description,
     productType: p.productType,
     tags: p.tags,

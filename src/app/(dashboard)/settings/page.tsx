@@ -24,6 +24,8 @@ const FILTER_LABELS: Record<string, string> = {
   auto_reply_header: "auto-reply",
   bulk_precedence: "newsletter or bulk mail",
   no_reply_sender: "no-reply sender",
+  mailing_list: "newsletter or mailing list",
+  notification_sender: "automatic notification",
   own_address: "our own email",
   rate_limited: "too many in a row",
   forwarding_confirmation: "forwarding confirmation",

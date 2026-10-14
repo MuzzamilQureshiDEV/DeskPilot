@@ -39,6 +39,11 @@ describe("loop protection", () => {
     return r.accept ? "accept" : r.reason;
   };
 
+  it("keeps real people whose address only starts like a notification sender", () => {
+    expect(reason({ from: "news.jane@gmail.com" })).toBe("accept");
+    expect(reason({ from: "alertsmith@gmail.com" })).toBe("accept");
+  });
+
   it("accepts a normal customer email", () => {
     expect(reason({})).toBe("accept");
     expect(reason({ headers: [{ Name: "Auto-Submitted", Value: "no" }] })).toBe("accept");
@@ -57,6 +62,11 @@ describe("loop protection", () => {
     [{ from: "Support@Shop.com" }, "own_address"],
     [{ recentFromSender: RATE_LIMIT.messages }, "rate_limited"],
     [{ from: "forwarding-noreply@google.com" }, "forwarding_confirmation"],
+    [{ from: "notifications@vercel.com" }, "notification_sender"],
+    [{ from: "alerts+billing@bank.com" }, "notification_sender"],
+    [{ from: "newsletter@brand.com" }, "notification_sender"],
+    [{ headers: [{ Name: "List-Unsubscribe", Value: "<mailto:u@x.com>" }] }, "mailing_list"],
+    [{ headers: [{ Name: "List-Id", Value: "<news.x.com>" }] }, "mailing_list"],
   ] as [Partial<typeof ok>, string][])("filters %o as %s", (over, expected) => {
     expect(reason(over)).toBe(expected);
   });

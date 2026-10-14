@@ -7,7 +7,7 @@ export const searchProducts = defineTool({
   definition: {
     name: "search_products",
     description:
-      "Search the store's products by keywords (name, type, material, use). Returns description, price, and stock per size. Use it for questions about products, sizes, availability or materials.",
+      "Search the store's products by keywords (name, type, material, use). Returns description, price, stock per size, and the product page link when the product is on the online store (share that link exactly; never make one up). Use it for questions about products, sizes, availability or materials.",
     strict: true,
     input_schema: {
       type: "object",

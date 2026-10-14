@@ -70,6 +70,7 @@ export const SEARCH_PRODUCTS = `
       nodes {
         id
         title
+        onlineStoreUrl
         description(truncateAt: 600)
         productType
         tags

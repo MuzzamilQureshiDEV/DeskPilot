@@ -106,6 +106,8 @@ export type ProductVariant = {
 export type ProductSummary = {
   id: string;
   title: string;
+  /** Product page on the storefront, when it's published there. */
+  url?: string | null;
   description: string;
   productType: string;
   tags: string[];

@@ -7,6 +7,8 @@ export type FilterReason =
   | "auto_reply_header"
   | "bulk_precedence"
   | "no_reply_sender"
+  | "mailing_list"
+  | "notification_sender"
   | "own_address"
   | "rate_limited"
   | "forwarding_confirmation";
@@ -19,6 +21,8 @@ const header = (headers: Header[], name: string) =>
   headers.find((h) => h.Name.toLowerCase() === name.toLowerCase())?.Value.trim();
 
 const NO_REPLY_LOCAL = /^(no[-_.]?reply|do[-_.]?not[-_.]?reply|mailer-daemon|postmaster|bounces?([-+._].*)?)$/i;
+/** Senders that are machines, not customers (service notifications, alerts, newsletters). */
+const NOTIFICATION_LOCAL = /^(notifications?|notify|alerts?|updates?|news(letter)?s?|mailer|system|automated|digest)([-+].*)?$/i;
 
 export function isGmailForwardingConfirmation(from: string, subject: string): boolean {
   return from.toLowerCase() === "forwarding-noreply@google.com" || /forwarding confirmation/i.test(subject);
@@ -45,7 +49,13 @@ export function classifyInbound(input: {
   const precedence = header(input.headers, "Precedence")?.toLowerCase();
   if (precedence && ["bulk", "list", "junk"].includes(precedence)) return { accept: false, reason: "bulk_precedence" };
 
+  // Newsletters and service mail carry list headers; customers writing in never do.
+  if (header(input.headers, "List-Unsubscribe") !== undefined || header(input.headers, "List-Id") !== undefined) {
+    return { accept: false, reason: "mailing_list" };
+  }
+
   if (NO_REPLY_LOCAL.test(local)) return { accept: false, reason: "no_reply_sender" };
+  if (NOTIFICATION_LOCAL.test(local)) return { accept: false, reason: "notification_sender" };
   if (input.ownAddresses.some((a) => a.toLowerCase() === from)) return { accept: false, reason: "own_address" };
   if (input.recentFromSender >= RATE_LIMIT.messages) return { accept: false, reason: "rate_limited" };
 
