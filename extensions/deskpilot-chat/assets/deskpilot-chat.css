@@ -236,3 +236,7 @@
 @media (prefers-reduced-motion: reduce) {
   .dpc-root *, .dpc-root *::before, .dpc-root *::after { animation: none !important; transition: none !important; }
 }
+
+.dpc-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 4px; }
+.dpc-chip { border: 1px solid color-mix(in srgb, var(--dpc-accent) 35%, white); background: var(--dpc-accent-soft); color: color-mix(in srgb, var(--dpc-accent) 80%, black); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 13px; cursor: pointer; transition: background .15s; }
+.dpc-chip:hover { background: color-mix(in srgb, var(--dpc-accent) 20%, white); }

@@ -1,3 +1,5 @@
+import { EMAIL_FILTER_DEFAULTS, senderMatches, type EmailFilters } from "@/lib/settings/email-filters";
+
 // Loop protection for inbound email (CLAUDE.md rule 8). Pure: given the
 // email's headers/sender and a recent-message count, decide whether the AI
 // may see it. Filtered emails are logged in filtered_emails, never answered.
@@ -10,6 +12,7 @@ export type FilterReason =
   | "mailing_list"
   | "notification_sender"
   | "own_address"
+  | "blocked_sender"
   | "rate_limited"
   | "forwarding_confirmation";
 
@@ -35,7 +38,10 @@ export function classifyInbound(input: {
   ownAddresses: string[];
   /** Customer messages from this sender in the last RATE_LIMIT.minutes (before this one). */
   recentFromSender: number;
+  /** The shop's Settings → Email filters. */
+  filters?: EmailFilters;
 }): { accept: true } | { accept: false; reason: FilterReason } {
+  const filters = input.filters ?? EMAIL_FILTER_DEFAULTS;
   const from = input.from.trim().toLowerCase();
   const local = from.split("@")[0] ?? "";
 
@@ -46,17 +52,21 @@ export function classifyInbound(input: {
   if (["X-Autoreply", "X-Autorespond", "X-Auto-Response-Suppress"].some((h) => header(input.headers, h) !== undefined)) {
     return { accept: false, reason: "auto_reply_header" };
   }
-  const precedence = header(input.headers, "Precedence")?.toLowerCase();
-  if (precedence && ["bulk", "list", "junk"].includes(precedence)) return { accept: false, reason: "bulk_precedence" };
-
-  // Newsletters and service mail carry list headers; customers writing in never do.
-  if (header(input.headers, "List-Unsubscribe") !== undefined || header(input.headers, "List-Id") !== undefined) {
-    return { accept: false, reason: "mailing_list" };
-  }
-
-  if (NO_REPLY_LOCAL.test(local)) return { accept: false, reason: "no_reply_sender" };
-  if (NOTIFICATION_LOCAL.test(local)) return { accept: false, reason: "notification_sender" };
   if (input.ownAddresses.some((a) => a.toLowerCase() === from)) return { accept: false, reason: "own_address" };
+  if (senderMatches(from, filters.blocked)) return { accept: false, reason: "blocked_sender" };
+  if (NO_REPLY_LOCAL.test(local)) return { accept: false, reason: "no_reply_sender" };
+
+  // Senders the merchant always allows skip the newsletter / notification guesses below.
+  const allowed = senderMatches(from, filters.allowed);
+  if (!allowed && filters.skipNewsletters) {
+    const precedence = header(input.headers, "Precedence")?.toLowerCase();
+    if (precedence && ["bulk", "list", "junk"].includes(precedence)) return { accept: false, reason: "bulk_precedence" };
+    // Newsletters and service mail carry list headers; customers writing in never do.
+    if (header(input.headers, "List-Unsubscribe") !== undefined || header(input.headers, "List-Id") !== undefined) {
+      return { accept: false, reason: "mailing_list" };
+    }
+    if (NOTIFICATION_LOCAL.test(local)) return { accept: false, reason: "notification_sender" };
+  }
   if (input.recentFromSender >= RATE_LIMIT.messages) return { accept: false, reason: "rate_limited" };
 
   return { accept: true };

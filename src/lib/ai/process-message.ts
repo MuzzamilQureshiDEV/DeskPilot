@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { runAgent, type MessagesClient } from "@/lib/ai/agent";
 import { decideOutcome, type AutomationMode, type AutomationSetting } from "@/lib/ai/outcome";
+import { emailFilters } from "@/lib/settings/email-filters";
 import type { Channel, HistoryMessage } from "@/lib/ai/prompts";
 import type { KnowledgeEntry } from "@/lib/ai/tools/types";
 import { PLANS, planOf } from "@/lib/billing/plans";
@@ -48,6 +49,9 @@ export type RunInput = {
   autopilotAllowedByPlan: boolean;
   /** Whether a reply could actually be emailed right now (email channel + sending configured). */
   canSend: boolean;
+  /** Email only: AI replies sent in a row since a person last replied, and the shop's cap. */
+  autoRepliesInARow?: number;
+  maxAutoReplies?: number;
 };
 
 export type Prepared = { skip: SkipReason } | { skip: null; input: RunInput };
@@ -56,7 +60,7 @@ export async function prepareRun(db: Db, ref: MessageRef, now: Date = new Date()
   const { shopId, conversationId, messageId } = ref;
 
   const [{ data: shop }, { data: conversation }, { data: message }] = await Promise.all([
-    db.from("shops").select("id, name, agent_name, agent_tone, plan, trial_ends_at, subscription_status, current_period_start, current_period_end").eq("id", shopId).maybeSingle(),
+    db.from("shops").select("id, name, agent_name, agent_tone, plan, trial_ends_at, subscription_status, current_period_start, current_period_end, email_filters").eq("id", shopId).maybeSingle(),
     db
       .from("conversations")
       .select("id, channel, status, ai_paused, customer_id")
@@ -124,6 +128,12 @@ export async function prepareRun(db: Db, ref: MessageRef, now: Date = new Date()
     .map((m) => ({ role: m.role as HistoryMessage["role"], body: m.body }));
 
   const channel = conversation.channel as Channel;
+  // Sent AI replies since the last reply from a person (newest first in rows).
+  let autoRepliesInARow = 0;
+  for (const m of rows ?? []) {
+    if (m.role === "human" && m.status === "sent") break;
+    if (m.role === "ai" && m.status === "sent") autoRepliesInARow++;
+  }
   const settings: Record<string, AutomationSetting> = Object.fromEntries(
     (settingRows ?? []).map((s) => [
       s.category,
@@ -146,6 +156,7 @@ export async function prepareRun(db: Db, ref: MessageRef, now: Date = new Date()
       autopilotAllowedByPlan: PLANS[planOf(shop.plan)].autopilot,
       // Chat "delivery" is the storefront widget showing sent replies; email needs a sender.
       canSend: channel === "chat" || (channel === "email" && emailSendingEnabled()),
+      ...(channel === "email" ? { autoRepliesInARow, maxAutoReplies: emailFilters(shop.email_filters).maxAutoReplies } : {}),
     },
   };
 }
@@ -181,6 +192,8 @@ export async function runAndDecide(
   const outcome = decideOutcome(result, setting, {
     // Nothing is auto-sent unless the reply can actually be emailed.
     autopilotAllowedByPlan: input.autopilotAllowedByPlan && input.canSend,
+    autoRepliesInARow: input.autoRepliesInARow,
+    maxAutoReplies: input.maxAutoReplies,
   });
 
   return {

@@ -36,7 +36,7 @@ export default async function ConversationPage({ params }: PageProps<"/inbox/[id
     .maybeSingle();
   if (!conv) notFound();
 
-  const [{ data: messages }, { data: actions }, unanswered] = await Promise.all([
+  const [{ data: messages }, { data: actions }, unanswered, { data: quickReplies }] = await Promise.all([
     supabase
       .from("messages")
       .select("id, role, status, body, confidence, reasoning, created_at, delivered_at, delivery_error")
@@ -50,6 +50,7 @@ export default async function ConversationPage({ params }: PageProps<"/inbox/[id
       .eq("shop_id", shop.id)
       .order("created_at", { ascending: false }),
     unansweredCustomerMessage(supabase, shop.id, id),
+    supabase.from("quick_replies").select("id, title, body").eq("shop_id", shop.id).order("title"),
   ]);
 
   const all = messages ?? [];
@@ -161,7 +162,7 @@ export default async function ConversationPage({ params }: PageProps<"/inbox/[id
             />
           )}
 
-          <ReplyComposer conversationId={conv.id} />
+          <ReplyComposer conversationId={conv.id} quickReplies={quickReplies ?? []} />
         </div>
 
         <aside className="flex flex-col gap-4">

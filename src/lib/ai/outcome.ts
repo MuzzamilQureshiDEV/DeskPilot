@@ -23,7 +23,16 @@ const isMoney = (c: Category) => (MONEY_CATEGORIES as readonly Category[]).inclu
 export function decideOutcome(
   result: Pick<AgentResult, "response" | "proposals">,
   setting: AutomationSetting,
-  opts: { autopilotAllowedByPlan: boolean },
+  opts: {
+    autopilotAllowedByPlan: boolean;
+    /**
+     * Email loop guard (Settings → Email filters): automatic replies already
+     * sent in a row in this conversation, and the most allowed. At the limit
+     * the reply is kept as a draft for the merchant.
+     */
+    autoRepliesInARow?: number;
+    maxAutoReplies?: number;
+  },
 ): Outcome {
   const { response, proposals } = result;
 
@@ -42,7 +51,8 @@ export function decideOutcome(
     setting.mode === "autopilot" &&
     opts.autopilotAllowedByPlan &&
     !isMoney(response.category) &&
-    response.confidence >= setting.confidenceThreshold;
+    response.confidence >= setting.confidenceThreshold &&
+    (opts.maxAutoReplies === undefined || (opts.autoRepliesInARow ?? 0) < opts.maxAutoReplies);
 
   return canAutoSend
     ? { messageStatus: "sent", conversationStatus: "open", createActionRequests: false }

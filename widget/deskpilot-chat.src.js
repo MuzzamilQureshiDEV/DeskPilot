@@ -73,7 +73,12 @@
 
   var token = load(TOKEN_KEY);
   var endpoint = root.getAttribute("data-endpoint");
-  var title = root.getAttribute("data-title") || "Chat with us";
+  // Look: theme-editor value (data-*) → AstaDesk Settings (/config) → default.
+  function attr(name) {
+    return (root.getAttribute("data-" + name) || "").trim();
+  }
+  var look = { title: attr("title") || "Chat with us", subtitle: attr("subtitle"), greeting: attr("greeting"), chips: [] };
+  var title = look.title;
   var state = {
     open: false,
     messages: [], // confirmed by the server
@@ -143,8 +148,10 @@
   if (!agent) avatar.appendChild(svg("M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6z", 20));
   avatar.appendChild(el("span", "dpc-online"));
   var titles = el("div", "dpc-titles");
-  titles.appendChild(el("strong", "dpc-title", title));
-  titles.appendChild(el("span", "dpc-sub", (agent ? agent + " · " : "") + "AI assistant · replies in seconds"));
+  var titleEl = el("strong", "dpc-title", title);
+  var subEl = el("span", "dpc-sub", look.subtitle || agent + " · AI assistant · replies in seconds");
+  titles.appendChild(titleEl);
+  titles.appendChild(subEl);
   who.appendChild(avatar);
   who.appendChild(titles);
   var close = el("button", "dpc-close");
@@ -220,8 +227,19 @@
   var rendered = {};
   function render() {
     list.textContent = "";
-    var greeting = root.getAttribute("data-greeting");
-    if (greeting) list.appendChild(bubble({ from: "agent", body: greeting }, "dpc-greeting"));
+    if (look.greeting) list.appendChild(bubble({ from: "agent", body: look.greeting }, "dpc-greeting"));
+    if (look.chips.length && !state.messages.length && !state.pending.length) {
+      var chips = el("div", "dpc-chips");
+      look.chips.forEach(function (c) {
+        var chip = el("button", "dpc-chip", c);
+        chip.type = "button";
+        chip.addEventListener("click", function () {
+          deliver(c);
+        });
+        chips.appendChild(chip);
+      });
+      list.appendChild(chips);
+    }
     if (state.loading && state.messages.length === 0) list.appendChild(el("div", "dpc-skeleton"));
     state.messages.forEach(function (m) {
       list.appendChild(bubble(m, rendered[m.id] ? "" : "dpc-new"));
@@ -360,6 +378,30 @@
       else form.dispatchEvent(new Event("submit", { cancelable: true }));
     }
   });
+
+  function applyLook(c) {
+    var accent = attr("accent") || c.accent;
+    if (/^#[0-9a-f]{6}$/i.test(accent || "")) root.style.setProperty("--dpc-accent", accent);
+    var pos = attr("position") || c.position;
+    if (pos === "left" || pos === "right") root.className = root.className.replace(/dpc-(left|right)/, "dpc-" + pos);
+    look.title = attr("title") || c.title || look.title;
+    look.subtitle = attr("subtitle") || c.subtitle || look.subtitle;
+    look.greeting = attr("greeting") || c.greeting || "";
+    look.chips = Array.isArray(c.chips) ? c.chips.slice(0, 4) : [];
+    titleEl.textContent = look.title;
+    panel.setAttribute("aria-label", look.title);
+    if (look.subtitle) subEl.textContent = look.subtitle;
+    render();
+  }
+  if (attr("config")) {
+    fetch(attr("config"), { headers: { Accept: "application/json" } })
+      .then(function (r) {
+        return r.ok ? r.json() : {};
+      })
+      .then(applyLook, function () {
+        applyLook({});
+      });
+  }
 
   function setOpen(open) {
     state.open = open;

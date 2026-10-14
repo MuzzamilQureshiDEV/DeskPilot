@@ -4,11 +4,14 @@
 {%- endcomment -%}
 <div
   id="deskpilot-chat"
-  class="dpc-root dpc-{{ block.settings.position | escape }}"
-  style="--dpc-accent: {{ block.settings.accent | escape }};"
+  class="dpc-root dpc-{% if block.settings.position == 'left' %}left{% else %}right{% endif %}"
   data-endpoint="/apps/deskpilot/messages"
+  data-config="/apps/deskpilot/config"
+  data-accent="{{ block.settings.accent | escape }}"
   data-title="{{ block.settings.title | escape }}"
+  data-subtitle="{{ block.settings.subtitle | escape }}"
   data-greeting="{{ block.settings.greeting | escape }}"
+  data-position="{{ block.settings.position | escape }}"
   data-open-label="{{ 'chat.open' | t | escape }}"
   data-close-label="{{ 'chat.close' | t | escape }}"
   hidden
@@ -21,18 +24,21 @@
   "javascript": "deskpilot-chat.js",
   "stylesheet": "deskpilot-chat.css",
   "settings": [
-    { "type": "color", "id": "accent", "label": "Accent colour", "default": "#0f766e" },
-    { "type": "text", "id": "title", "label": "Chat title", "default": "Chat with us" },
-    { "type": "text", "id": "greeting", "label": "Greeting", "default": "Hi! How can we help?" },
+    { "type": "paragraph", "content": "Set the colour, texts and quick questions in AstaDesk → Settings → Chat widget. Fill a field here only to override it for this theme." },
+    { "type": "color", "id": "accent", "label": "Accent colour (optional override)" },
+    { "type": "text", "id": "title", "label": "Chat title (optional override)" },
+    { "type": "text", "id": "subtitle", "label": "Subtitle (optional override)" },
+    { "type": "text", "id": "greeting", "label": "Greeting (optional override)" },
     {
       "type": "select",
       "id": "position",
       "label": "Position",
       "options": [
+        { "value": "", "label": "Use AstaDesk setting" },
         { "value": "right", "label": "Bottom right" },
         { "value": "left", "label": "Bottom left" }
       ],
-      "default": "right"
+      "default": ""
     }
   ]
 }

@@ -4,6 +4,7 @@ import { enqueueMessage } from "@/inngest/events";
 import { chatShop, postChat, readChat, type ChatError } from "@/lib/chat/handlers";
 import { verifyProxyRequest } from "@/lib/chat/proxy-auth";
 import { getSchema, postSchema } from "@/lib/chat/session";
+import { widgetSettings } from "@/lib/settings/widget";
 import { normalizeShopDomain, shopifyAppConfig } from "@/lib/shopify/oauth";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -13,19 +14,21 @@ import { createAdminClient } from "@/lib/supabase/admin";
 const json = (body: unknown, status = 200) =>
   NextResponse.json(body, { status, headers: { "cache-control": "no-store" } });
 
-type Verified = { shopId: string; params: URLSearchParams } | NextResponse;
+type Route = "messages" | "config";
+type Verified = { shopId: string; params: URLSearchParams; route: Route } | NextResponse;
 
 async function verify(req: NextRequest, path: string[]): Promise<Verified> {
   const cfg = shopifyAppConfig();
   if (!cfg) return json({ error: "Chat isn't available right now." }, 503);
   const params = req.nextUrl.searchParams;
   if (!verifyProxyRequest(params, cfg.apiSecret)) return json({ error: "unauthorized" }, 401);
-  if (path.join("/") !== "messages") return json({ error: "not found" }, 404);
+  const route = path.join("/");
+  if (route !== "messages" && route !== "config") return json({ error: "not found" }, 404);
   const domain = normalizeShopDomain(params.get("shop") ?? "");
   if (!domain) return json({ error: "unauthorized" }, 401);
   const shop = await chatShop(createAdminClient(), domain);
   if ("error" in shop) return json({ error: shop.error }, shop.status);
-  return { shopId: shop.id, params };
+  return { shopId: shop.id, params, route };
 }
 
 const isError = (r: object): r is ChatError => "error" in r;
@@ -33,6 +36,11 @@ const isError = (r: object): r is ChatError => "error" in r;
 export async function GET(req: NextRequest, ctx: RouteContext<"/api/proxy/[...path]">) {
   const v = await verify(req, (await ctx.params).path);
   if (v instanceof NextResponse) return v;
+  if (v.route === "config") {
+    // The widget's look from Settings → Chat widget. No customer data; cached briefly.
+    const { data } = await createAdminClient().from("shops").select("widget").eq("id", v.shopId).maybeSingle();
+    return NextResponse.json(widgetSettings(data?.widget), { headers: { "cache-control": "public, max-age=300" } });
+  }
   const parsed = getSchema.safeParse({ token: v.params.get("token"), after: v.params.get("after") || undefined });
   if (!parsed.success) return json({ error: "bad request" }, 400);
   return json(await readChat(createAdminClient(), v.shopId, parsed.data.token, parsed.data.after));
@@ -41,6 +49,7 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/proxy/[...pa
 export async function POST(req: NextRequest, ctx: RouteContext<"/api/proxy/[...path]">) {
   const v = await verify(req, (await ctx.params).path);
   if (v instanceof NextResponse) return v;
+  if (v.route !== "messages") return json({ error: "not found" }, 404);
   let body: unknown;
   try {
     body = await req.json();

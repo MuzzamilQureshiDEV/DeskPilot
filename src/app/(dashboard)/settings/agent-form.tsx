@@ -11,6 +11,16 @@ import { cn } from "@/lib/utils";
 
 import { saveAgentSettings, type AgentSettingsState } from "./actions";
 
+/** How each tone answers the same question: "Where is my order #1042?" */
+const SAMPLES: Record<string, string> = {
+  friendly: "Hi Sam! Great news, order #1042 shipped yesterday and should be with you by Friday.",
+  professional: "Hello Sam, thank you for reaching out. Order #1042 shipped yesterday and is expected to arrive on Friday.",
+  concise: "Order #1042 shipped yesterday. It arrives Friday.",
+  empathetic: "Hi Sam, I understand waiting is no fun. Order #1042 is on its way and should arrive by Friday.",
+  playful: "Hey Sam! Your order #1042 is zooming your way and lands Friday!",
+  custom: "Ava follows the words you describe.",
+};
+
 export function AgentForm({ preset, customTone }: { preset: string; customTone: string }) {
   const [state, action, pending] = useActionState<AgentSettingsState, FormData>(saveAgentSettings, {});
   const [selected, setSelected] = useState(preset);
@@ -51,6 +61,7 @@ export function AgentForm({ preset, customTone }: { preset: string; customTone: 
               />
               <span className="font-medium">{t.label}</span>
               <span className="text-xs text-muted-foreground">{t.tone || "Describe it yourself"}</span>
+              <span className="mt-2 border-l-2 border-primary/30 pl-2 text-xs text-muted-foreground italic">&ldquo;{SAMPLES[t.id]}&rdquo;</span>
             </label>
           ))}
         </div>

@@ -20,6 +20,15 @@ const plan = { autopilotAllowedByPlan: true };
 const proposal: ProposedAction = { type: "refund", orderId: "o1", payload: {} };
 
 describe("decideOutcome", () => {
+  it("email loop guard: stops auto-sending after the cap of replies in a row", () => {
+    const r = { response: response(), proposals: [] };
+    expect(decideOutcome(r, autopilot, { ...plan, autoRepliesInARow: 2, maxAutoReplies: 3 }).messageStatus).toBe("sent");
+    expect(decideOutcome(r, autopilot, { ...plan, autoRepliesInARow: 3, maxAutoReplies: 3 })).toEqual({ messageStatus: "draft", conversationStatus: "ai_drafted", createActionRequests: false });
+    expect(decideOutcome(r, autopilot, { ...plan, autoRepliesInARow: 0, maxAutoReplies: 0 }).messageStatus).toBe("draft");
+    // No cap given (chat): unaffected.
+    expect(decideOutcome(r, autopilot, { ...plan, autoRepliesInARow: 50 }).messageStatus).toBe("sent");
+  });
+
   it("auto-sends only with autopilot, plan support and enough confidence", () => {
     expect(decideOutcome({ response: response(), proposals: [] }, autopilot, plan)).toEqual({
       messageStatus: "sent",

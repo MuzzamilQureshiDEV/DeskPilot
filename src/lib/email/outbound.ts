@@ -35,6 +35,14 @@ export type OutgoingEmail = {
 
 const quoteName = (name: string) => `"${name.replace(/["\\\r\n]/g, "").slice(0, 100)}"`;
 
+/** The shop's email signature (Settings → Email) under a reply; chat never gets one. */
+export function withSignature(body: string, signature: string | null | undefined): string {
+  const sig = (signature ?? "").trim();
+  return sig ? `${body.trimEnd()}
+
+${sig}` : body;
+}
+
 export function replySubject(subject: string | null): string {
   const s = (subject ?? "").trim() || "Your message";
   return /^re:/i.test(s) ? s : `Re: ${s}`;
@@ -119,7 +127,7 @@ export async function deliverMessage(
       .eq("id", msg.conversation_id)
       .eq("shop_id", shopId)
       .maybeSingle(),
-    db.from("shops").select("name, agent_name, inbound_hash").eq("id", shopId).maybeSingle(),
+    db.from("shops").select("name, agent_name, inbound_hash, email_signature").eq("id", shopId).maybeSingle(),
     db
       .from("messages")
       .select("rfc_message_id")
@@ -143,7 +151,7 @@ export async function deliverMessage(
       to,
       fromName: `${shop.agent_name} at ${shop.name}`,
       subject: replySubject(conv.subject),
-      text: msg.body,
+      text: withSignature(msg.body, shop.email_signature),
       replyTo: replyAddress(config.inboundAddress, shop.inbound_hash, conv.reply_token),
       inReplyTo: lastCustomer?.rfc_message_id ?? null,
     },

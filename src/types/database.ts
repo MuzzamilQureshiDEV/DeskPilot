@@ -478,6 +478,38 @@ export type Database = {
           },
         ]
       }
+      quick_replies: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          shop_id: string
+          title: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          shop_id: string
+          title: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          shop_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quick_replies_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shop_members: {
         Row: {
           role: string
@@ -534,6 +566,8 @@ export type Database = {
           created_at: string | null
           current_period_end: string | null
           current_period_start: string | null
+          email_filters: Json
+          email_signature: string
           id: string
           inbound_email: string | null
           inbound_hash: string
@@ -556,6 +590,7 @@ export type Database = {
           subscription_status: string | null
           support_from_email: string | null
           trial_ends_at: string | null
+          widget: Json
         }
         Insert: {
           agent_name?: string
@@ -565,6 +600,8 @@ export type Database = {
           created_at?: string | null
           current_period_end?: string | null
           current_period_start?: string | null
+          email_filters?: Json
+          email_signature?: string
           id?: string
           inbound_email?: string | null
           inbound_hash?: string
@@ -587,6 +624,7 @@ export type Database = {
           subscription_status?: string | null
           support_from_email?: string | null
           trial_ends_at?: string | null
+          widget?: Json
         }
         Update: {
           agent_name?: string
@@ -596,6 +634,8 @@ export type Database = {
           created_at?: string | null
           current_period_end?: string | null
           current_period_start?: string | null
+          email_filters?: Json
+          email_signature?: string
           id?: string
           inbound_email?: string | null
           inbound_hash?: string
@@ -618,6 +658,7 @@ export type Database = {
           subscription_status?: string | null
           support_from_email?: string | null
           trial_ends_at?: string | null
+          widget?: Json
         }
         Relationships: []
       }

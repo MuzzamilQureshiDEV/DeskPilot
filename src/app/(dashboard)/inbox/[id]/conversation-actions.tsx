@@ -1,10 +1,20 @@
 "use client";
 
-import { Bot, CheckCircle2, Hand, Pencil, RotateCcw, Send, Sparkles, X } from "lucide-react";
+import { Bot, CheckCircle2, Hand, MessageSquareQuote, Pencil, RotateCcw, Send, Sparkles, X } from "lucide-react";
+import Link from "next/link";
 import { useState, useTransition } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
 
 import {
@@ -135,7 +145,39 @@ export function DraftCard({
   );
 }
 
-export function ReplyComposer({ conversationId }: { conversationId: string }) {
+type QuickReply = { id: string; title: string; body: string };
+
+/** Inserts a saved quick reply into the reply box (it stays editable). */
+function QuickReplyPicker({ replies, onPick }: { replies: QuickReply[]; onPick: (body: string) => void }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger render={<Button type="button" variant="outline" size="sm" />}>
+        <MessageSquareQuote aria-hidden />
+        Quick replies
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="max-h-80 w-72 overflow-y-auto">
+        {replies.length === 0 ? (
+          <DropdownMenuGroup>
+            <DropdownMenuLabel className="font-normal text-muted-foreground">No quick replies yet.</DropdownMenuLabel>
+          </DropdownMenuGroup>
+        ) : (
+          <DropdownMenuGroup>
+            {replies.map((r) => (
+              <DropdownMenuItem key={r.id} onClick={() => onPick(r.body)} className="flex flex-col items-start gap-0.5">
+                <span className="font-medium">{r.title}</span>
+                <span className="line-clamp-1 text-xs text-muted-foreground">{r.body}</span>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuGroup>
+        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem render={<Link href="/settings?tab=quick-replies" />}>Manage quick replies</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+export function ReplyComposer({ conversationId, quickReplies = [] }: { conversationId: string; quickReplies?: QuickReply[] }) {
   const [text, setText] = useState("");
   const { pending, error, notice, run } = useAction();
   return (
@@ -164,10 +206,13 @@ export function ReplyComposer({ conversationId }: { conversationId: string }) {
           {error}
         </p>
       )}
-      <Button type="submit" className="self-end" disabled={pending || !text.trim()}>
-        <Send aria-hidden />
-        {pending ? "Sending…" : "Send reply"}
-      </Button>
+      <div className="flex items-center justify-between gap-2">
+        <QuickReplyPicker replies={quickReplies} onPick={(body) => setText((t) => (t.trim() ? `${t.trimEnd()}\n\n${body}` : body))} />
+        <Button type="submit" disabled={pending || !text.trim()}>
+          <Send aria-hidden />
+          {pending ? "Sending…" : "Send reply"}
+        </Button>
+      </div>
     </form>
   );
 }

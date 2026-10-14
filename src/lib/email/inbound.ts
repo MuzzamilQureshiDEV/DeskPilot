@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import { normalizeSubject, parseMailboxHash } from "@/lib/email/addresses";
+import { emailFilters } from "@/lib/settings/email-filters";
 import {
   classifyInbound,
   extractForwardingConfirmation,
@@ -70,12 +71,12 @@ export async function handleInbound(db: Db, email: PostmarkInbound, deps: Inboun
   const now = deps.now ?? new Date();
 
   // 1. Which shop (and maybe which conversation)?
-  let shop: { id: string; setup: Json } | null = null;
+  let shop: { id: string; setup: Json; email_filters: Json } | null = null;
   let replyToken: string | null = null;
   for (const hash of mailboxHashes(email)) {
     const parsed = parseMailboxHash(hash);
     if (!parsed) continue;
-    const { data } = await db.from("shops").select("id, setup").eq("inbound_hash", parsed.shopHash).maybeSingle();
+    const { data } = await db.from("shops").select("id, setup, email_filters").eq("inbound_hash", parsed.shopHash).maybeSingle();
     if (data) {
       shop = data;
       replyToken = parsed.replyToken;
@@ -109,7 +110,14 @@ export async function handleInbound(db: Db, email: PostmarkInbound, deps: Inboun
       recentFromSender = count ?? 0;
     }
   }
-  const verdict = classifyInbound({ from, subject: email.Subject, headers: email.Headers, ownAddresses: deps.ownAddresses, recentFromSender });
+  const verdict = classifyInbound({
+    from,
+    subject: email.Subject,
+    headers: email.Headers,
+    ownAddresses: deps.ownAddresses,
+    recentFromSender,
+    filters: emailFilters(shop.email_filters),
+  });
   if (!verdict.accept) {
     await db.from("filtered_emails").insert({ shop_id: shopId, from_email: from, subject: email.Subject.slice(0, 300), reason: verdict.reason });
     if (verdict.reason === "forwarding_confirmation") {
