@@ -3,7 +3,7 @@ import "server-only";
 import { serverEnv } from "@/lib/env";
 
 /** When the current Privacy Policy and Terms took effect (update on every material change). */
-export const LEGAL_EFFECTIVE_DATE = "12 October 2026";
+export const LEGAL_EFFECTIVE_DATE = "15 October 2026";
 
 export type LegalConfig = { entity: string; contactEmail: string | null; governingLaw: string };
 

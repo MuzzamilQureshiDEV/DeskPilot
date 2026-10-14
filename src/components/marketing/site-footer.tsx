@@ -24,6 +24,7 @@ const COLUMNS = [
     links: [
       ["/privacy", "Privacy Policy"],
       ["/terms", "Terms of Service"],
+      ["/security", "Security"],
     ],
   },
 ] as const;
