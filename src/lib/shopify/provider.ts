@@ -27,6 +27,8 @@ const moneySet = z.object({ shopMoney: z.object({ amount: z.string(), currencyCo
 const orderSummaryNode = z.object({
   id: z.string(),
   name: z.string(),
+  /** The code on the thank-you page and some emails, e.g. "CI8AVPPC8". */
+  confirmationNumber: z.string().nullable().optional(),
   email: z.string().nullable(),
   createdAt: z.string(),
   cancelledAt: z.string().nullable(),
@@ -181,6 +183,12 @@ export function matchesOrderNumber(orderName: string, input: string): boolean {
   const b = orderNumberKey(input);
   if (!b) return false;
   return a === b || (digits(b).length > 0 && digits(a) === digits(b));
+}
+
+/** Customers sometimes quote the confirmation code ("#CI8AVPPC8") instead of the order number. */
+export function matchesConfirmationNumber(confirmation: string | null | undefined, input: string): boolean {
+  const a = orderNumberKey(confirmation ?? "");
+  return a.length >= 6 && a === orderNumberKey(input);
 }
 
 function toSummary(n: OrderSummaryNode): OrderSummary {
@@ -377,7 +385,7 @@ export class ShopifyProvider implements StoreProvider {
 
     return data.orders.nodes
       .filter((n) => !email || n.email?.toLowerCase() === email) // no email visible → no match
-      .filter((n) => !number || matchesOrderNumber(n.name, number))
+      .filter((n) => !number || matchesOrderNumber(n.name, number) || matchesConfirmationNumber(n.confirmationNumber, number))
       .map(toSummary);
   }
 

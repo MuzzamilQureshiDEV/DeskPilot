@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  matchesConfirmationNumber,
   matchesOrderNumber,
   money,
   productSearchQuery,
@@ -232,6 +233,13 @@ describe("helpers", () => {
     expect(productSearchQuery("Hi! Do you have any snowboards in stock?")).toBe("status:active (snowboards OR snowboard)");
     expect(productSearchQuery("  ??  ")).toBeNull();
     expect(productSearchQuery("do you have any?")).toBeNull();
+  });
+
+  it("accepts the confirmation code customers see on the thank-you page", () => {
+    expect(matchesConfirmationNumber("CI8AVPPC8", "#CI8AVPPC8")).toBe(true);
+    expect(matchesConfirmationNumber("CI8AVPPC8", "ci8avppc8")).toBe(true);
+    expect(matchesConfirmationNumber("CI8AVPPC8", "CI8AVPPC9")).toBe(false);
+    expect(matchesConfirmationNumber(null, "#1001")).toBe(false);
   });
 
   it("matchesOrderNumber handles # and store prefixes", () => {

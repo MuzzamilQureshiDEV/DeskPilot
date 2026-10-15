@@ -17,7 +17,7 @@ export const lookupOrder = defineTool({
       properties: {
         order_number: {
           type: "string",
-          description: "Order number exactly as the customer wrote it, e.g. \"#1003\" or \"1003\".",
+          description: "Order number exactly as the customer wrote it, e.g. \"#1003\" or \"1003\". Customers may instead give the confirmation code from their thank-you page (e.g. \"#CI8AVPPC8\"); pass that as-is too.",
         },
         email: {
           type: "string",

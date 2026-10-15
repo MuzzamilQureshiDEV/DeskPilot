@@ -6,6 +6,7 @@ const MONEY = "shopMoney { amount currencyCode }";
 const ORDER_SUMMARY_FIELDS = `
   id
   name
+  confirmationNumber
   email
   createdAt
   cancelledAt
