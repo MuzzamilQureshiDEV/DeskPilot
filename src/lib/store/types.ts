@@ -89,8 +89,10 @@ export type OrderDetail = OrderSummary & {
   subtotal: Money;
   shipping: Money;
   totalRefunded: Money;
-  /** True only if nothing has shipped and the order isn't cancelled. */
+  /** True only if nothing has shipped, it isn't being prepared, and the order isn't cancelled. */
   cancellable: boolean;
+  /** Marked "In progress" or sent to a fulfilment service in Shopify: can't be cancelled or changed automatically. */
+  beingPrepared?: boolean;
 };
 
 export type ProductVariant = {

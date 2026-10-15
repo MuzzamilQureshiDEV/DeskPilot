@@ -22,6 +22,11 @@ export const proposeCancellation = defineTool({
   async run(input, ctx) {
     const order = await requireVerifiedOrder(input.order_id, ctx);
     if (order.cancelledAt) throw new ToolError("This order is already cancelled.");
+    if (order.beingPrepared) {
+      throw new ToolError(
+        "This order is already being prepared for shipping, so it can't be cancelled automatically. Don't propose it. Tell the customer you're checking with the team, and escalate.",
+      );
+    }
     if (!order.cancellable) {
       throw new ToolError(
         "This order has already shipped (fully or partly), so it can't be cancelled. Explain the returns policy instead.",

@@ -37,6 +37,11 @@ export const proposeAddressChange = defineTool({
   },
   async run(input, ctx) {
     const order = await requireVerifiedOrder(input.order_id, ctx);
+    if (order.beingPrepared) {
+      throw new ToolError(
+        "This order is already being prepared for shipping, so its address can't be changed automatically. Don't propose it. Tell the customer you're checking with the team, and escalate.",
+      );
+    }
     if (!order.cancellable) {
       throw new ToolError(
         "This order has already shipped or was cancelled, so its address can't be changed. Don't propose it. Explain this to the customer, or escalate.",

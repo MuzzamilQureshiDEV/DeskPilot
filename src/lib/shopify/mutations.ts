@@ -34,6 +34,7 @@ const ORDER_STATE = `
       name
       cancelledAt
       displayFinancialStatus
+      displayFulfillmentStatus
       fulfillments(first: 10) { status }
       lineItems(first: 50) { nodes { id quantity unfulfilledQuantity } }
       transactions(first: 20) { id kind status gateway amountSet { ${"shopMoney { amount currencyCode }"} } }
@@ -48,6 +49,7 @@ const orderStateSchema = z.object({
       name: z.string(),
       cancelledAt: z.string().nullable(),
       displayFinancialStatus: z.string().nullable(),
+      displayFulfillmentStatus: z.string().nullable().optional(),
       fulfillments: z.array(z.object({ status: z.string() })),
       lineItems: z.object({ nodes: z.array(z.object({ id: z.string(), quantity: z.number(), unfulfilledQuantity: z.number() })) }),
       transactions: z.array(
@@ -68,6 +70,18 @@ export async function loadOrderState(conn: ShopifyConn, orderId: string): Promis
   const { order } = await gql(conn, ORDER_STATE, { id: orderId }, orderStateSchema);
   if (!order) throw new ActionFailed("The order no longer exists in Shopify.");
   return order;
+}
+
+const PREPARING_MESSAGE = "Shopify won't change this order while it's marked \"In progress\" (being prepared). In Shopify, open the order and move it back to Unfulfilled, then approve again, or make the change in Shopify yourself.";
+
+/** Marked "In progress" (or sent to a fulfilment service) in Shopify. */
+export function beingPrepared(o: { displayFulfillmentStatus?: string | null }): boolean {
+  return o.displayFulfillmentStatus === "IN_PROGRESS" || o.displayFulfillmentStatus === "PENDING_FULFILLMENT";
+}
+
+/** Shopify's own refusal, in words the merchant can act on. */
+function explainRefusal(error: string): string {
+  return /outstanding fulfillment/i.test(error) ? PREPARING_MESSAGE : error;
 }
 
 /** Anything already shipped (or being shipped). */
@@ -233,6 +247,7 @@ export async function executeCancel(conn: ShopifyConn, orderId: string, opts: { 
   const order = await loadOrderState(conn, orderId);
   if (order.cancelledAt) return { already_cancelled: true }; // idempotent: done before
   if (hasShipped(order)) throw new ActionFailed("This order has already shipped, so it can't be cancelled.");
+  if (beingPrepared(order)) throw new ActionFailed(PREPARING_MESSAGE);
 
   const res = await gql(
     conn,
@@ -241,7 +256,7 @@ export async function executeCancel(conn: ShopifyConn, orderId: string, opts: { 
     orderCancelSchema,
   );
   const error = firstUserError(res.orderCancel.orderCancelUserErrors);
-  if (error) throw new ActionFailed(`Shopify refused the cancellation: ${error}`);
+  if (error) throw new ActionFailed(`Shopify refused the cancellation: ${explainRefusal(error)}`);
   return { job_id: res.orderCancel.job?.id ?? null };
 }
 
@@ -277,6 +292,7 @@ export async function executeAddressChange(conn: ShopifyConn, orderId: string, a
   const order = await loadOrderState(conn, orderId);
   if (order.cancelledAt) throw new ActionFailed("This order was cancelled.");
   if (hasShipped(order)) throw new ActionFailed("This order has already shipped, so its address can't be changed.");
+  if (beingPrepared(order)) throw new ActionFailed(PREPARING_MESSAGE);
 
   const shippingAddress = {
     ...splitName(address.name),

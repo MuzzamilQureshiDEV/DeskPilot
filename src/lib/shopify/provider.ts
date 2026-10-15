@@ -191,6 +191,9 @@ export function matchesConfirmationNumber(confirmation: string | null | undefine
   return a.length >= 6 && a === orderNumberKey(input);
 }
 
+/** Shopify fulfilment states where the order is already being worked on; Shopify refuses to cancel these. */
+const BEING_PREPARED = new Set(["IN_PROGRESS", "PENDING_FULFILLMENT"]);
+
 function toSummary(n: OrderSummaryNode): OrderSummary {
   return {
     id: n.id,
@@ -275,8 +278,10 @@ export function toDetail(n: OrderDetailNode, now: Date): OrderDetail {
     subtotal: n.subtotalPriceSet ? fromSet(n.subtotalPriceSet) : money("0", currency),
     shipping: fromSet(n.totalShippingPriceSet),
     totalRefunded: fromSet(n.totalRefundedSet),
+    beingPrepared: BEING_PREPARED.has(n.displayFulfillmentStatus),
     cancellable:
       n.cancelledAt === null &&
+      !BEING_PREPARED.has(n.displayFulfillmentStatus) &&
       fulfillments.length === 0 &&
       shipped === 0 &&
       summary.financialStatus !== "refunded" &&

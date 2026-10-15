@@ -16,6 +16,7 @@ export function orderView(o: OrderDetail): Json {
     fulfillment_status: o.fulfillmentStatus,
     cancelled_at: o.cancelledAt,
     can_cancel_or_change_address: o.cancellable,
+    ...(o.beingPrepared ? { being_prepared_for_shipping: true } : {}),
     items: o.lineItems.map((li) => ({
       line_item_id: li.id,
       title: li.title,

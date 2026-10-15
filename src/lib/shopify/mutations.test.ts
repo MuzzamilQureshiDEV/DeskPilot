@@ -154,6 +154,19 @@ describe("executeCancel", () => {
     const shipped = fakeShopify({ OrderState: () => orderState({ fulfillments: [{ status: "SUCCESS" }] }) });
     await expect(executeCancel(shipped.conn, ORDER, { notifyCustomer: true, restock: true })).rejects.toThrow(/already shipped/);
   });
+
+  it("refuses orders marked In progress in Shopify, with steps to fix it", async () => {
+    const preparing = fakeShopify({ OrderState: () => orderState({ displayFulfillmentStatus: "IN_PROGRESS" }) });
+    await expect(executeCancel(preparing.conn, ORDER, { notifyCustomer: true, restock: true })).rejects.toThrow(/marked "In progress"/);
+    expect(preparing.calls.map((c) => c.op)).toEqual(["OrderState"]);
+
+    // If Shopify itself refuses for this reason, the message is explained the same way.
+    const refused = fakeShopify({
+      OrderState: () => orderState(),
+      OrderCancel: () => ({ orderCancel: { job: null, orderCancelUserErrors: [{ field: null, message: "Cannot cancel an order that has outstanding fulfillments", code: "INVALID" }] } }),
+    });
+    await expect(executeCancel(refused.conn, ORDER, { notifyCustomer: true, restock: true })).rejects.toThrow(/move it back to Unfulfilled/);
+  });
 });
 
 describe("executeAddressChange", () => {

@@ -159,6 +159,8 @@ describe("getOrder", () => {
     expect((await provider({ order: unshipped }).p.getOrder("gid://shopify/Order/1"))?.cancellable).toBe(true);
     expect((await provider({ order: { ...unshipped, cancelledAt: "2026-10-03T00:00:00Z" } }).p.getOrder("gid://shopify/Order/1"))?.cancellable).toBe(false);
     expect((await provider({ order: { ...unshipped, displayFinancialStatus: "REFUNDED" } }).p.getOrder("gid://shopify/Order/1"))?.cancellable).toBe(false);
+    const preparing = await provider({ order: { ...unshipped, displayFulfillmentStatus: "IN_PROGRESS" } }).p.getOrder("gid://shopify/Order/1");
+    expect(preparing).toMatchObject({ cancellable: false, beingPrepared: true });
   });
 
   it("ignores cancelled shipments and handles missing tracking and address", async () => {
