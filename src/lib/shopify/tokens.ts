@@ -2,6 +2,7 @@ import "server-only";
 
 import { decrypt, encrypt } from "@/lib/crypto";
 import {
+  clientCredentialsToken,
   refreshAccessToken,
   shopifyAppConfig,
   ShopifyTokenError,
@@ -38,37 +39,40 @@ export type StoredTokens = {
   refreshTokenEnc: string;
   accessExpiresAt: Date;
   refreshExpiresAt: Date;
+  /** "own_app": the store's own private app (client credentials), no refresh token. */
+  auth?: "oauth" | "own_app";
+  clientId?: string | null;
+  clientSecretEnc?: string | null;
 };
 
 /** Persistence for tokens. The default uses Supabase; tests pass a fake. */
 export type TokenStore = {
   load(shopId: string): Promise<StoredTokens | null>;
   save(shopId: string, tokens: ShopifyTokens): Promise<void>;
+  /** Own-app credentials stopped working: show "needs reconnecting". */
+  markBroken?(shopId: string): Promise<void>;
 };
 
 export const supabaseTokenStore: TokenStore = {
   async load(shopId) {
     const { data, error } = await createAdminClient()
       .from("shops")
-      .select("shopify_domain, shopify_token_enc, shopify_refresh_token_enc, shopify_token_expires_at, shopify_refresh_expires_at")
+      .select("shopify_domain, shopify_token_enc, shopify_refresh_token_enc, shopify_token_expires_at, shopify_refresh_expires_at, shopify_auth, shopify_client_id, shopify_client_secret_enc")
       .eq("id", shopId)
       .maybeSingle();
     if (error) throw new Error("Could not load Shopify connection");
-    if (
-      !data?.shopify_domain ||
-      !data.shopify_token_enc ||
-      !data.shopify_refresh_token_enc ||
-      !data.shopify_token_expires_at ||
-      !data.shopify_refresh_expires_at
-    ) {
-      return null;
-    }
+    if (!data?.shopify_domain || !data.shopify_token_enc || !data.shopify_token_expires_at || !data.shopify_refresh_expires_at) return null;
+    const ownApp = data.shopify_auth === "own_app";
+    if (ownApp ? !data.shopify_client_id || !data.shopify_client_secret_enc : !data.shopify_refresh_token_enc) return null;
     return {
       domain: data.shopify_domain,
       accessTokenEnc: data.shopify_token_enc,
-      refreshTokenEnc: data.shopify_refresh_token_enc,
+      refreshTokenEnc: data.shopify_refresh_token_enc ?? "",
       accessExpiresAt: new Date(data.shopify_token_expires_at),
       refreshExpiresAt: new Date(data.shopify_refresh_expires_at),
+      auth: ownApp ? "own_app" : "oauth",
+      clientId: data.shopify_client_id,
+      clientSecretEnc: data.shopify_client_secret_enc,
     };
   },
   async save(shopId, t) {
@@ -76,13 +80,16 @@ export const supabaseTokenStore: TokenStore = {
       .from("shops")
       .update({
         shopify_token_enc: encrypt(t.accessToken),
-        shopify_refresh_token_enc: encrypt(t.refreshToken),
+        shopify_refresh_token_enc: t.refreshToken ? encrypt(t.refreshToken) : null,
         shopify_token_expires_at: t.accessExpiresAt.toISOString(),
         shopify_refresh_expires_at: t.refreshExpiresAt.toISOString(),
         shopify_scopes: t.scopes.join(","),
       })
       .eq("id", shopId);
     if (error) throw new Error("Could not save refreshed Shopify token");
+  },
+  async markBroken(shopId) {
+    await createAdminClient().from("shops").update({ shopify_refresh_expires_at: new Date().toISOString() }).eq("id", shopId);
   },
 };
 
@@ -126,13 +133,19 @@ export async function getShopifyAccessToken(
   if (pending) return pending;
 
   const run = (async () => {
-    if (!deps.config) throw new Error("Shopify app credentials are not configured");
     let fresh: ShopifyTokens;
     try {
-      fresh = await refreshAccessToken(deps.config, stored.domain, deps.decrypt(stored.refreshTokenEnc), deps.fetchFn, now);
+      if (stored.auth === "own_app") {
+        // The store's own private app: a new 24-hour token from its client credentials.
+        fresh = await clientCredentialsToken(stored.domain, stored.clientId ?? "", deps.decrypt(stored.clientSecretEnc ?? ""), deps.fetchFn, now);
+      } else {
+        if (!deps.config) throw new Error("Shopify app credentials are not configured");
+        fresh = await refreshAccessToken(deps.config, stored.domain, deps.decrypt(stored.refreshTokenEnc), deps.fetchFn, now);
+      }
     } catch (err) {
-      // 400/401: refresh token rejected (revoked, rotated away or expired).
+      // 400/401: refresh token or app credentials rejected (revoked, rotated away, app uninstalled).
       if (err instanceof ShopifyTokenError && (err.status === 400 || err.status === 401)) {
+        if (stored.auth === "own_app") await deps.store.markBroken?.(shopId);
         throw new ShopifyReauthRequired();
       }
       throw err;

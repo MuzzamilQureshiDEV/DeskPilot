@@ -24,6 +24,7 @@ import { getAuthUser, getCurrentShop } from "@/lib/auth/session";
 import { shopAddress } from "@/lib/email/addresses";
 import { emailConfig } from "@/lib/email/outbound";
 import { serverEnv } from "@/lib/env";
+import { publicEnv } from "@/lib/env-public";
 import { presetFor } from "@/lib/settings/agent";
 import { emailFilters } from "@/lib/settings/email-filters";
 import { widgetSettings } from "@/lib/settings/widget";
@@ -34,7 +35,7 @@ import { AgentForm } from "./agent-form";
 import { CopyAddress, TestEmailButton } from "./email-card";
 import { NotificationsForm } from "./notifications-card";
 import { DataRequestActions } from "./privacy-card";
-import { AccountForm, FiltersForm, QuickRepliesManager, SignatureForm } from "./settings-forms";
+import { AccountForm, EmbedCode, FiltersForm, QuickRepliesManager, SignatureForm } from "./settings-forms";
 import { WidgetEditor } from "./widget-editor";
 
 export const metadata: Metadata = { title: "Settings · AstaDesk" };
@@ -122,7 +123,7 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
   const { data: row } = shop
     ? await supabase
         .from("shops")
-        .select("inbound_hash, setup, notify_escalations, notify_approvals, widget, email_filters, email_signature")
+        .select("inbound_hash, setup, notify_escalations, notify_approvals, widget, email_filters, email_signature, widget_key")
         .eq("id", shop.id)
         .single()
     : { data: null };
@@ -171,7 +172,7 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
           </p>
         </Section>
       ) : tab === "widget" ? (
-        <WidgetTab shopId={shop.id} storeName={shop.name} widget={row?.widget} />
+        <WidgetTab shopId={shop.id} storeName={shop.name} widget={row?.widget} widgetKey={row?.widget_key ?? null} />
       ) : tab === "notifications" ? (
         <Section icon={Bell} title="Notifications" description={`Get an email the moment ${agent} needs you, so no customer waits unnoticed.`}>
           <NotificationsForm
@@ -306,15 +307,18 @@ async function EmailTab({ shopId, storeName, agent, row }: { shopId: string; sto
   );
 }
 
-async function WidgetTab({ shopId, storeName, widget }: { shopId: string; storeName: string; widget: unknown }) {
+async function WidgetTab({ shopId, storeName, widget, widgetKey }: { shopId: string; storeName: string; widget: unknown; widgetKey: string | null }) {
   const supabase = await createClient();
   const [{ count: chats }, { data: store }] = await Promise.all([
     supabase.from("conversations").select("id", { count: "exact", head: true }).eq("shop_id", shopId).eq("channel", "chat"),
     supabase.rpc("shopify_connection_status", { p_shop_id: shopId }).maybeSingle(),
   ]);
   const apiKey = serverEnv().SHOPIFY_API_KEY;
+  const viaApp = store?.domain && store.auth === "oauth";
   const themeEditorUrl =
-    store?.domain && !store.uninstalled_at && apiKey ? `https://${store.domain}/admin/themes/current/editor?context=apps&activateAppId=${apiKey}/chat` : null;
+    viaApp && !store.uninstalled_at && apiKey ? `https://${store.domain}/admin/themes/current/editor?context=apps&activateAppId=${apiKey}/chat` : null;
+  const appUrl = publicEnv().NEXT_PUBLIC_APP_URL.replace(/\/+$/, "");
+  const embed = widgetKey ? `<script src="${appUrl}/astadesk-chat.js" data-key="${widgetKey}" async></script>` : null;
 
   return (
     <>
@@ -326,33 +330,42 @@ async function WidgetTab({ shopId, storeName, widget }: { shopId: string; storeN
       >
         <WidgetEditor initial={widgetSettings(widget)} storeName={storeName} />
       </Section>
-      <Section icon={ExternalLink} title="Turn it on in Shopify" description="The chat appears once the AstaDesk app embed is on in your theme.">
-        <div className="flex flex-col gap-4 text-sm">
-          <ol className="flex list-decimal flex-col gap-1 pl-5 text-muted-foreground">
-            <li>Open your theme editor with the button below (or Online Store → Themes → Customize → App embeds).</li>
-            <li>
-              Turn on <span className="font-medium text-foreground">AstaDesk chat</span> and click Save.
-            </li>
-            <li>
-              The look comes from this page. The theme editor fields are optional overrides for one theme. Leave them empty to use these
-              settings.
-            </li>
-          </ol>
-          {themeEditorUrl ? (
-            <a href={themeEditorUrl} target="_blank" rel="noopener noreferrer" className={buttonVariants({ className: "self-start" })}>
-              <ExternalLink aria-hidden />
-              Open Shopify theme editor
-            </a>
-          ) : (
-            <p className="text-muted-foreground">
-              <Link href="/store" className="font-medium text-primary hover:underline">
-                Connect your Shopify store
-              </Link>{" "}
-              first.
-            </p>
-          )}
-        </div>
-      </Section>
+      {viaApp ? (
+        <Section icon={ExternalLink} title="Turn it on in Shopify" description="The chat appears once the AstaDesk app embed is on in your theme.">
+          <div className="flex flex-col gap-4 text-sm">
+            <ol className="flex list-decimal flex-col gap-1 pl-5 text-muted-foreground">
+              <li>Open your theme editor with the button below (or Online Store → Themes → Customize → App embeds).</li>
+              <li>
+                Turn on <span className="font-medium text-foreground">AstaDesk chat</span> and click Save.
+              </li>
+              <li>The look comes from this page. The theme editor fields are optional overrides for one theme. Leave them empty to use these settings.</li>
+            </ol>
+            {themeEditorUrl && (
+              <a href={themeEditorUrl} target="_blank" rel="noopener noreferrer" className={buttonVariants({ className: "self-start" })}>
+                <ExternalLink aria-hidden />
+                Open Shopify theme editor
+              </a>
+            )}
+          </div>
+        </Section>
+      ) : (
+        <Section icon={ExternalLink} title="Add the chat to your store" description="Paste this one line into your theme once. Changes you make on this page then appear on your store automatically.">
+          <div className="flex flex-col gap-4 text-sm">
+            {embed && <EmbedCode code={embed} />}
+            <ol className="flex list-decimal flex-col gap-1 pl-5 text-muted-foreground">
+              <li>In Shopify admin, open Online Store → Themes.</li>
+              <li>
+                On your live theme click <span className="font-medium text-foreground">⋯ → Edit code</span>, then open{" "}
+                <span className="font-mono text-foreground">layout/theme.liquid</span>.
+              </li>
+              <li>
+                Paste the code just before <span className="font-mono text-foreground">&lt;/body&gt;</span> and click Save.
+              </li>
+            </ol>
+            <p className="text-xs text-muted-foreground">Works on any Shopify theme. To remove the chat, delete the line again.</p>
+          </div>
+        </Section>
+      )}
     </>
   );
 }

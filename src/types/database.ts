@@ -577,6 +577,9 @@ export type Database = {
           paypal_subscription_id: string | null
           plan: Database["public"]["Enums"]["plan_tier"]
           setup: Json
+          shopify_auth: string
+          shopify_client_id: string | null
+          shopify_client_secret_enc: string | null
           shopify_connected_at: string | null
           shopify_domain: string | null
           shopify_refresh_expires_at: string | null
@@ -591,6 +594,7 @@ export type Database = {
           support_from_email: string | null
           trial_ends_at: string | null
           widget: Json
+          widget_key: string
         }
         Insert: {
           agent_name?: string
@@ -611,6 +615,9 @@ export type Database = {
           paypal_subscription_id?: string | null
           plan?: Database["public"]["Enums"]["plan_tier"]
           setup?: Json
+          shopify_auth?: string
+          shopify_client_id?: string | null
+          shopify_client_secret_enc?: string | null
           shopify_connected_at?: string | null
           shopify_domain?: string | null
           shopify_refresh_expires_at?: string | null
@@ -625,6 +632,7 @@ export type Database = {
           support_from_email?: string | null
           trial_ends_at?: string | null
           widget?: Json
+          widget_key?: string
         }
         Update: {
           agent_name?: string
@@ -645,6 +653,9 @@ export type Database = {
           paypal_subscription_id?: string | null
           plan?: Database["public"]["Enums"]["plan_tier"]
           setup?: Json
+          shopify_auth?: string
+          shopify_client_id?: string | null
+          shopify_client_secret_enc?: string | null
           shopify_connected_at?: string | null
           shopify_domain?: string | null
           shopify_refresh_expires_at?: string | null
@@ -659,6 +670,7 @@ export type Database = {
           support_from_email?: string | null
           trial_ends_at?: string | null
           widget?: Json
+          widget_key?: string
         }
         Relationships: []
       }
@@ -818,6 +830,7 @@ export type Database = {
       shopify_connection_status: {
         Args: { p_shop_id: string }
         Returns: {
+          auth: string
           connected_at: string
           domain: string
           needs_reconnect: boolean

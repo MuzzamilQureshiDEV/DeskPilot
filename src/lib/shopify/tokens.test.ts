@@ -82,3 +82,39 @@ describe("getShopifyAccessToken", () => {
     await expect(getShopifyAccessToken("shop-6", deps(null).d)).rejects.toBeInstanceOf(ShopifyNotConnected);
   });
 });
+
+describe("own private app (client credentials)", () => {
+  const ownApp = (accessInMin: number): StoredTokens => ({
+    ...stored(accessInMin),
+    refreshTokenEnc: "",
+    auth: "own_app",
+    clientId: "client-123",
+    clientSecretEnc: "enc:secret-xyz",
+  });
+
+  it("gets a new 24-hour token with the store's own credentials when the old one is about to expire", async () => {
+    const { d, saved, fetchFn } = deps(ownApp(2), { status: 200, body: { access_token: "shpat_new", scope: "read_orders,write_orders", expires_in: 86399 } });
+    expect(await getShopifyAccessToken("shop-1", d)).toEqual({ domain: "my-store.myshopify.com", accessToken: "shpat_new" });
+    const [url, init] = fetchFn.mock.calls[0]!;
+    expect(String(url)).toBe("https://my-store.myshopify.com/admin/oauth/access_token");
+    const body = new URLSearchParams(String(init?.body));
+    expect(Object.fromEntries(body)).toEqual({ grant_type: "client_credentials", client_id: "client-123", client_secret: "secret-xyz" });
+    expect(saved[0]).toMatchObject({ accessToken: "shpat_new", refreshToken: "", scopes: ["read_orders", "write_orders"] });
+    expect(saved[0]!.accessExpiresAt.getTime()).toBe(NOW.getTime() + 86399_000);
+  });
+
+  it("works without the AstaDesk app config, and marks the store broken when Shopify rejects the credentials", async () => {
+    const { d } = deps(ownApp(2), { status: 401, body: {} });
+    const markBroken = vi.fn(async () => {});
+    d.config = null;
+    d.store.markBroken = markBroken;
+    await expect(getShopifyAccessToken("shop-1", d)).rejects.toBeInstanceOf(ShopifyReauthRequired);
+    expect(markBroken).toHaveBeenCalledWith("shop-1");
+  });
+
+  it("uses a still-valid token without calling Shopify", async () => {
+    const { d, fetchFn } = deps(ownApp(120));
+    expect((await getShopifyAccessToken("shop-1", d)).accessToken).toBe("shpat_current");
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+});

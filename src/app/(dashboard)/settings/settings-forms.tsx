@@ -303,3 +303,29 @@ export function AccountForm({ name, email }: { name: string; email: string }) {
     </div>
   );
 }
+
+// ---- Chat embed code --------------------------------------------------------
+
+export function EmbedCode({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="relative">
+      <pre className="overflow-x-auto rounded-xl border bg-muted/50 p-4 pr-24 font-mono text-xs leading-relaxed whitespace-pre-wrap break-all">{code}</pre>
+      <Button
+        size="sm"
+        className="absolute top-2.5 right-2.5"
+        onClick={() => {
+          navigator.clipboard.writeText(code).then(
+            () => {
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1500);
+            },
+            () => toast.error("Couldn't copy. Select the code and copy it manually."),
+          );
+        }}
+      >
+        {copied ? "Copied" : "Copy"}
+      </Button>
+    </div>
+  );
+}

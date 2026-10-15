@@ -112,6 +112,10 @@ export default function PrivacyPage() {
           </li>
           <li>When a store uninstalls AstaDesk, we delete its shoppers&apos; data 48 hours later unless it reconnects.</li>
           <li>
+            Stores that connect with their own private Shopify app don&apos;t receive Shopify&apos;s automatic deletion requests through us.
+            They forward any deletion request to us and we delete the shopper&apos;s data within 30 days.
+          </li>
+          <li>
             Merchants can ask us to delete their account. We then delete their data, except what the law requires us to keep (such as
             invoices).
           </li>

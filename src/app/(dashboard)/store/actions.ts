@@ -5,7 +5,9 @@ import { z } from "zod";
 
 import { getCurrentShop } from "@/lib/auth/session";
 import { checkShopifyConnection, type CheckResult } from "@/lib/shopify/health";
+import { connectOwnApp, type OwnAppResult } from "@/lib/shopify/own-app";
 import { getShopifyAccessToken, ShopifyNotConnected, ShopifyReauthRequired } from "@/lib/shopify/tokens";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 /** Removes the stored Shopify tokens for the signed-in user's shop. */
@@ -46,4 +48,18 @@ export async function saveStoreName(name: string): Promise<{ ok: true } | { ok: 
   if (error) return { ok: false, error: "Couldn't save. Please try again." };
   revalidatePath("/", "layout");
   return { ok: true };
+}
+
+/** Connect through the store's own private Shopify app (Client ID + secret). Owner only. */
+export async function connectOwnShopifyApp(input: { domain: string; clientId: string; clientSecret: string }): Promise<OwnAppResult> {
+  const shop = await getCurrentShop();
+  if (!shop) return { ok: false, error: "Your account isn't linked to a store." };
+  if (shop.role !== "owner") return { ok: false, error: "Only the store owner can connect Shopify." };
+  const result = await connectOwnApp(createAdminClient(), shop.id, {
+    domain: String(input?.domain ?? ""),
+    clientId: String(input?.clientId ?? ""),
+    clientSecret: String(input?.clientSecret ?? ""),
+  });
+  if (result.ok) revalidatePath("/", "layout");
+  return result;
 }

@@ -16,7 +16,7 @@ const SERVICES = [
   ["Inngest", "background jobs, called only with signed requests"],
   ["Postmark", "receiving forwarded emails and sending replies"],
   ["PayPal and Stripe", "payments; card details never reach AstaDesk"],
-  ["Shopify", "store data, through the official Admin API"],
+  ["Shopify", "store data, through the official Admin API (with the store's own app credentials, encrypted like tokens)"],
 ];
 
 export default function SecurityPage() {
@@ -105,7 +105,7 @@ export default function SecurityPage() {
           <li>Your data is never used to train AI models, and never sold.</li>
           <li>
             Shopify privacy requests are handled automatically: customer data is deleted on request, and a store&apos;s customer data
-            is deleted 48 hours after it uninstalls AstaDesk. Details are in our <Link href="/privacy">Privacy Policy</Link>.
+            is deleted 48 hours after it uninstalls AstaDesk. Stores connected with their own private app send us these requests by email. Details are in our <Link href="/privacy">Privacy Policy</Link>.
           </li>
         </ul>
       </section>

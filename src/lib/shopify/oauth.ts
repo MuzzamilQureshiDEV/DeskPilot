@@ -169,3 +169,42 @@ export function missingScopes(granted: string[], required: string[]): string[] {
   const have = new Set(granted);
   return required.filter((s) => !have.has(s) && !(s.startsWith("read_") && have.has(`write_${s.slice(5)}`)));
 }
+
+const clientCredentialsResponse = z.object({
+  access_token: z.string().min(1),
+  scope: z.string().default(""),
+  expires_in: z.number().int().positive(),
+});
+
+/** Stores using their own private app have no refresh token; this marks "doesn't expire". */
+const OWN_APP_HORIZON_MS = 10 * 365 * 86_400_000;
+
+/**
+ * A store's own private app (created in the merchant's Dev Dashboard): trade
+ * its client ID and secret for a 24-hour access token (client credentials
+ * grant). Only works for the store that owns the app.
+ */
+export async function clientCredentialsToken(
+  shop: string,
+  clientId: string,
+  clientSecret: string,
+  fetchFn: FetchFn = fetch,
+  now: Date = new Date(),
+): Promise<ShopifyTokens> {
+  const res = await fetchFn(`https://${shop}/admin/oauth/access_token`, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json" },
+    body: new URLSearchParams({ grant_type: "client_credentials", client_id: clientId, client_secret: clientSecret }).toString(),
+  });
+  if (!res.ok) throw new ShopifyTokenError(`Shopify token request failed (${res.status})`, res.status);
+  const parsed = clientCredentialsResponse.safeParse(await res.json().catch(() => null));
+  if (!parsed.success) throw new ShopifyTokenError("Unexpected Shopify token response", res.status);
+  const t = parsed.data;
+  return {
+    accessToken: t.access_token,
+    refreshToken: "",
+    scopes: t.scope.split(",").map((s) => s.trim()).filter(Boolean),
+    accessExpiresAt: new Date(now.getTime() + t.expires_in * 1000),
+    refreshExpiresAt: new Date(now.getTime() + OWN_APP_HORIZON_MS),
+  };
+}
