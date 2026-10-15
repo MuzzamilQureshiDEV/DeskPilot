@@ -45,7 +45,7 @@ type AppSidebarProps = {
   locked?: boolean;
 };
 
-const PLAN_ONLY = new Set(["/train", "/automation"]);
+const PLAN_ONLY = new Set(["/train", "/automation", "/approvals", "/escalations"]);
 
 function initials(name: string): string {
   const letters = name
@@ -120,7 +120,7 @@ export function AppSidebar({ shopName, email, storeConnected, counts, locked }: 
                         <item.icon aria-hidden />
                         <span>{item.title}</span>
                         {(() => {
-                          const n = item.href === "/escalations" ? counts?.escalations : item.href === "/approvals" ? counts?.approvals : 0;
+                          const n = locked ? 0 : item.href === "/escalations" ? counts?.escalations : item.href === "/approvals" ? counts?.approvals : 0;
                           return n ? (
                             <span
                               className="ml-auto rounded-full bg-destructive px-1.5 text-xs font-medium text-white tabular-nums"

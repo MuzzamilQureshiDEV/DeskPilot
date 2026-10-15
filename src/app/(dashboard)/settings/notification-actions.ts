@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { getCurrentShop } from "@/lib/auth/session";
+import { hasPlan } from "@/lib/billing/plans";
 import { createClient } from "@/lib/supabase/server";
 
 const prefsSchema = z.object({ escalations: z.boolean(), approvals: z.boolean() });
@@ -15,6 +16,7 @@ export async function saveNotificationSettings(input: unknown): Promise<{ ok: tr
   const shop = await getCurrentShop();
   if (!shop) return { ok: false, error: "Your account isn't linked to a store." };
   if (shop.role !== "owner") return { ok: false, error: "Only the store owner can change alerts." };
+  if (!hasPlan(shop.plan)) return { ok: false, error: "Choose a plan to turn on alerts." };
 
   const supabase = await createClient();
   const { error } = await supabase

@@ -10,6 +10,7 @@ import {
   MessageSquareQuote,
   Palette,
   ShieldAlert,
+  ShieldCheck,
   UserRound,
   type LucideIcon,
 } from "lucide-react";
@@ -17,10 +18,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { PageHeader, PageShell } from "@/components/dashboard/page-header";
+import { PlanLocked } from "@/components/dashboard/plan-locked";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getAuthUser, getCurrentShop } from "@/lib/auth/session";
+import { hasPlan } from "@/lib/billing/plans";
 import { shopAddress } from "@/lib/email/addresses";
 import { emailConfig } from "@/lib/email/outbound";
 import { serverEnv } from "@/lib/env";
@@ -36,6 +39,7 @@ import { CopyAddress, TestEmailButton } from "./email-card";
 import { NotificationsForm } from "./notifications-card";
 import { DataRequestActions } from "./privacy-card";
 import { AccountForm, EmbedCode, FiltersForm, QuickRepliesManager, SignatureForm } from "./settings-forms";
+import { ScrollActiveTab } from "./scroll-active-tab";
 import { WidgetEditor } from "./widget-editor";
 
 export const metadata: Metadata = { title: "Settings · AstaDesk" };
@@ -48,9 +52,30 @@ const TABS = [
   { id: "filters", label: "Email filters", icon: Filter },
   { id: "quick-replies", label: "Quick replies", icon: MessageSquareQuote },
   { id: "account", label: "Account", icon: UserRound },
-  { id: "privacy", label: "Privacy", icon: Lock },
+  { id: "privacy", label: "Privacy", icon: ShieldCheck },
 ] as const satisfies readonly { id: string; label: string; icon: LucideIcon }[];
 type TabId = (typeof TABS)[number]["id"];
+
+/** Tabs that need a paid plan (they only matter once Ava answers real customers). */
+const PLAN_TABS = new Set<TabId>(["email", "notifications", "filters"]);
+
+const LOCKED_COPY: Partial<Record<TabId, { title: string; description: string; points: string[] }>> = {
+  email: {
+    title: "Email support unlocks with a plan",
+    description: "Choose a plan to forward your support inbox, so customer emails arrive here and Ava can answer them.",
+    points: ["Forward Gmail or Outlook in a minute", "Replies sent from support@astadesk.com", "Your own email signature"],
+  },
+  notifications: {
+    title: "Alerts unlock with a plan",
+    description: "Choose a plan to get an email whenever Ava needs you.",
+    points: ["When Ava hands a conversation to you", "When a refund, cancellation or address change waits for approval"],
+  },
+  filters: {
+    title: "Email filters unlock with a plan",
+    description: "Choose a plan to decide which incoming emails reach Ava.",
+    points: ["Always block or always allow senders", "Skip newsletters and automatic notifications", "Limit automatic replies per conversation"],
+  },
+};
 
 const FILTER_LABELS: Record<string, string> = {
   auto_submitted: "Auto-reply",
@@ -117,6 +142,8 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
 
   const shop = await getCurrentShop();
   const user = await getAuthUser();
+  const paid = shop ? hasPlan(shop.plan) : false;
+  const lockedCopy = !paid ? LOCKED_COPY[tab] : undefined;
   const supabase = await createClient();
   const agent = shop?.agentName ?? "Ava";
 
@@ -132,8 +159,13 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
     <PageShell>
       <PageHeader title="Settings" description={`Email, ${agent}'s reply style, your store chat and your account.`} />
 
-      <nav aria-label="Settings sections" className="sticky top-14 z-10 -mx-4 overflow-x-auto bg-background/85 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6">
-        <ul className="flex w-max gap-1 rounded-2xl border bg-card p-1 shadow-soft">
+      <nav
+        id="settings-tabs"
+        aria-label="Settings sections"
+        className="sticky top-14 z-10 -mx-4 overflow-x-auto bg-background/85 px-4 py-2 backdrop-blur [scrollbar-width:none] max-sm:[mask-image:linear-gradient(to_right,black_88%,transparent)] sm:-mx-6 sm:px-6 [&::-webkit-scrollbar]:hidden"
+      >
+        <ScrollActiveTab navId="settings-tabs" active={tab} />
+        <ul className="flex w-max gap-1 rounded-2xl border bg-card p-1 shadow-soft max-sm:mr-10">
           {TABS.map(({ id, label, icon: Icon }) => {
             const active = id === tab;
             return (
@@ -149,6 +181,7 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
                 >
                   <Icon className="size-4" aria-hidden />
                   {label}
+                  {!paid && PLAN_TABS.has(id) && <Lock className="size-3.5 opacity-70" aria-label="Needs a plan" />}
                 </Link>
               </li>
             );
@@ -158,6 +191,8 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
 
       {!shop ? (
         <p className="text-sm text-muted-foreground">Your account isn&apos;t linked to a store.</p>
+      ) : lockedCopy ? (
+        <PlanLocked title={lockedCopy.title} description={lockedCopy.description} points={lockedCopy.points} />
       ) : tab === "email" ? (
         <EmailTab shopId={shop.id} storeName={shop.name} agent={agent} row={row} />
       ) : tab === "style" ? (

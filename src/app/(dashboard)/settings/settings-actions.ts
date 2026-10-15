@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { getAuthUser, getCurrentShop } from "@/lib/auth/session";
+import { hasPlan } from "@/lib/billing/plans";
 import { publicEnv } from "@/lib/env-public";
 import { emailFiltersSchema } from "@/lib/settings/email-filters";
 import { widgetSchema } from "@/lib/settings/widget";
@@ -39,6 +40,7 @@ export async function saveEmailFilters(input: unknown): Promise<Result> {
   if (!parsed.success) return fail(firstIssue(parsed.error));
   const ctx = await shopOrNull();
   if (!ctx) return fail("Your account isn't linked to a store.");
+  if (!hasPlan(ctx.shop.plan)) return fail("Choose a plan to change email filters.");
   const { error } = await ctx.db.from("shops").update({ email_filters: parsed.data }).eq("id", ctx.shop.id);
   if (error) return fail("Couldn't save. Please try again.");
   revalidatePath("/settings");
@@ -52,6 +54,7 @@ export async function saveSignature(signature: unknown): Promise<Result> {
   if (!parsed.success) return fail(firstIssue(parsed.error));
   const ctx = await shopOrNull();
   if (!ctx) return fail("Your account isn't linked to a store.");
+  if (!hasPlan(ctx.shop.plan)) return fail("Choose a plan to set an email signature.");
   const { error } = await ctx.db.from("shops").update({ email_signature: parsed.data.trim() }).eq("id", ctx.shop.id);
   if (error) return fail("Couldn't save. Please try again.");
   revalidatePath("/settings");

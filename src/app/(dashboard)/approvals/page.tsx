@@ -2,7 +2,9 @@ import { ShieldCheck } from "lucide-react";
 import type { Metadata } from "next";
 
 import { EmptyState, PageHeader, PageShell } from "@/components/dashboard/page-header";
+import { PlanLocked } from "@/components/dashboard/plan-locked";
 import { getCurrentShop } from "@/lib/auth/session";
+import { hasPlan } from "@/lib/billing/plans";
 import { toCardData } from "@/lib/actions/card";
 import type { ActionType } from "@/lib/inbox/action-summary";
 import { createClient } from "@/lib/supabase/server";
@@ -16,6 +18,14 @@ const SELECT = "id, type, status, payload, result, error, decided_at, created_at
 export default async function ApprovalsPage() {
   const shop = await getCurrentShop();
   const agent = shop?.agentName ?? "Your agent";
+  if (shop && !hasPlan(shop.plan)) {
+    return (
+      <PageShell>
+        <PageHeader title="Approvals" description={`Refunds, cancellations and address changes waiting for your decision.`} />
+        <PlanLocked title={`Approvals unlock with a plan`} description={`Once you choose a plan, ${agent} prepares refunds, cancellations and address changes here. Nothing happens in Shopify until you approve.`} points={["Refunds checked against your policy","Cancellations before the order ships","Shipping address changes","The customer is told once it's done"]} />
+      </PageShell>
+    );
+  }
   const supabase = await createClient();
 
   const [{ data: open }, { data: recent }] = shop

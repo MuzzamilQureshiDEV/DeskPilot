@@ -19,6 +19,8 @@ export default defineConfig(({ mode }) => ({
     env: loadEnv(mode, process.cwd(), ""),
     // DB tests hit the cloud dev project over the network.
     testTimeout: 30_000,
-    hookTimeout: 60_000,
+    hookTimeout: 120_000,
+    // DB test files each sign in test users; fewer at once keeps under Supabase's auth rate limit.
+    maxWorkers: 4,
   },
 }));

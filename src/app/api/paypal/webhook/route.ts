@@ -2,6 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { paypalConfig, paypalFetch, type PayPalSubscription } from "@/lib/paypal/client";
 import { handlePayPalEvent, type PayPalEvent } from "@/lib/paypal/webhook";
+import { queueUnansweredAfterSubscribe } from "@/lib/billing/catch-up";
+import { enqueueMessage } from "@/inngest/events";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // PayPal webhook (rule 5): every event is verified with PayPal's
@@ -51,6 +53,10 @@ export async function POST(req: NextRequest) {
       getSubscription: (id) => paypalFetch<PayPalSubscription>(cfg, `/v1/billing/subscriptions/${encodeURIComponent(id)}`),
       plans: cfg.plans,
     });
+    if (result.status === "processed") {
+      // Answer messages that arrived before the store had a plan (no-op otherwise).
+      await queueUnansweredAfterSubscribe(createAdminClient(), result.shopId, enqueueMessage).catch(() => console.error("billing: catch-up failed"));
+    }
     return NextResponse.json(result);
   } catch {
     console.error("paypal webhook failed", event.id, event.event_type);

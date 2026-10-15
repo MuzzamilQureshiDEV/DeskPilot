@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { enqueueMessage } from "@/inngest/events";
 import { getCurrentShop } from "@/lib/auth/session";
+import { hasPlan } from "@/lib/billing/plans";
 import { deliverMessage, type DeliveryResult } from "@/lib/email/outbound";
 import * as inbox from "@/lib/inbox/mutations";
 import { createClient } from "@/lib/supabase/server";
@@ -17,6 +18,7 @@ export type Result =
 async function withShop(fn: (db: Db, shopId: string) => Promise<Result>): Promise<Result> {
   const shop = await getCurrentShop();
   if (!shop) return { ok: false, error: "Your account isn't linked to a store." };
+  if (!hasPlan(shop.plan)) return { ok: false, error: "Choose a plan to reply to customers and manage conversations." };
   const result = await fn(await createClient(), shop.id);
   revalidatePath("/inbox", "layout");
   return result;

@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { enqueueAction } from "@/inngest/events";
 import { getCurrentShop } from "@/lib/auth/session";
+import { hasPlan } from "@/lib/billing/plans";
 import { createClient } from "@/lib/supabase/server";
 
 export type DecisionResult = { ok: true; queued: boolean } | { ok: false; error: string };
@@ -20,6 +21,7 @@ export async function approveAction(input: unknown): Promise<DecisionResult> {
   if (!parsed.success) return { ok: false, error: "Invalid request." };
   const shop = await getCurrentShop();
   if (!shop) return { ok: false, error: "Your account isn't linked to a store." };
+  if (!hasPlan(shop.plan)) return { ok: false, error: "Choose a plan to approve requests." };
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("approve_action_request", {
@@ -45,6 +47,7 @@ export async function rejectAction(id: unknown): Promise<DecisionResult> {
   if (!parsed.success) return { ok: false, error: "Invalid request." };
   const shop = await getCurrentShop();
   if (!shop) return { ok: false, error: "Your account isn't linked to a store." };
+  if (!hasPlan(shop.plan)) return { ok: false, error: "Choose a plan to manage requests." };
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("reject_action_request", { p_id: parsed.data });

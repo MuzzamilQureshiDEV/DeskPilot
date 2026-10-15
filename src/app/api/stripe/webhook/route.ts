@@ -3,6 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { serverEnv } from "@/lib/env";
 import { stripeClient } from "@/lib/stripe/client";
 import { handleStripeEvent } from "@/lib/stripe/webhook";
+import { queueUnansweredAfterSubscribe } from "@/lib/billing/catch-up";
+import { enqueueMessage } from "@/inngest/events";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /** Stripe webhook (rule 5): signature verified on the raw body before anything else. */
@@ -24,6 +26,10 @@ export async function POST(req: NextRequest) {
     const result = await handleStripeEvent(createAdminClient(), event, {
       retrieveSubscription: (id) => stripe.subscriptions.retrieve(id),
     });
+    if (result.status === "processed") {
+      // Answer messages that arrived before the store had a plan (no-op otherwise).
+      await queueUnansweredAfterSubscribe(createAdminClient(), result.shopId, enqueueMessage).catch(() => console.error("billing: catch-up failed"));
+    }
     return NextResponse.json(result);
   } catch {
     // Ids and types only (rule 4). A 500 makes Stripe retry.

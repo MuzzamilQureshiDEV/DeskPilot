@@ -1,12 +1,15 @@
-import { ArrowLeft, Info, MailCheck, MailX, ShieldCheck, TriangleAlert } from "lucide-react";
+import { ArrowLeft, Info, Lock, MailCheck, MailX, ShieldCheck, TriangleAlert } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { PageShell } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCurrentShop } from "@/lib/auth/session";
+import { hasPlan } from "@/lib/billing/plans";
+import { loadAiAccess } from "@/lib/billing/usage";
 import { emailSendingEnabled } from "@/lib/email/outbound";
 import { toCardData } from "@/lib/actions/card";
 import type { ActionType } from "@/lib/inbox/action-summary";
@@ -19,7 +22,6 @@ import { ActionCard } from "../../approvals/action-card";
 import { ConversationControls, DraftCard, ReplyComposer, ResendButton } from "./conversation-actions";
 
 export const metadata: Metadata = { title: "Conversation · AstaDesk" };
-
 
 export default async function ConversationPage({ params }: PageProps<"/inbox/[id]">) {
   const { id } = await params;
@@ -59,6 +61,9 @@ export default async function ConversationPage({ params }: PageProps<"/inbox/[id
   const isEmail = conv.channel === "email";
   const sending = emailSendingEnabled();
   const agent = shop.agentName;
+  // No plan yet: the conversation can be read, not answered or managed.
+  const readOnly = !hasPlan(shop.plan);
+  const aiAvailable = !readOnly && (await loadAiAccess(supabase, shop.id, shop, new Date())).access.allowed;
   const customerName = conv.customers?.name || conv.customers?.email || "Customer";
 
   return (
@@ -87,8 +92,8 @@ export default async function ConversationPage({ params }: PageProps<"/inbox/[id
       {conv.channel === "chat" && (
         <p className="flex items-start gap-2 rounded-lg border border-dashed px-3 py-2 text-sm text-muted-foreground">
           <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
-          Chat from your store. Replies you send appear in the shopper&apos;s chat window within a few seconds. Order details are
-          only shared after the shopper gives their order number and checkout email.
+          Chat from your store. Replies you send appear in the shopper&apos;s chat window within a few seconds. Order details are only shared after
+          the shopper gives their order number and checkout email.
         </p>
       )}
 
@@ -97,6 +102,24 @@ export default async function ConversationPage({ params }: PageProps<"/inbox/[id
           <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
           Email sending isn&apos;t set up yet. Replies you send are recorded here but not emailed to the customer.
         </p>
+      )}
+
+      {readOnly && (
+        <div
+          role="status"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm"
+        >
+          <p className="flex items-start gap-2">
+            <Lock className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+            <span>
+              <span className="font-medium">Read-only until you choose a plan.</span> {agent} will start answering, and you can reply and manage
+              conversations, once you subscribe.
+            </span>
+          </p>
+          <Link href="/billing" className={buttonVariants({ size: "sm" })}>
+            See plans
+          </Link>
+        </div>
       )}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
@@ -140,7 +163,7 @@ export default async function ConversationPage({ params }: PageProps<"/inbox/[id
                         <>
                           <MailX className="size-3.5" aria-hidden />
                           {m.delivery_error ? `Not emailed: ${m.delivery_error}` : "Not emailed"}
-                          {sending && <ResendButton messageId={m.id} />}
+                          {sending && !readOnly && <ResendButton messageId={m.id} />}
                         </>
                       )}
                     </span>
@@ -150,7 +173,7 @@ export default async function ConversationPage({ params }: PageProps<"/inbox/[id
             })}
           </ol>
 
-          {latestDraft && (
+          {latestDraft && !readOnly && (
             <DraftCard
               agentName={agent}
               draft={{
@@ -162,7 +185,23 @@ export default async function ConversationPage({ params }: PageProps<"/inbox/[id
             />
           )}
 
-          <ReplyComposer conversationId={conv.id} quickReplies={quickReplies ?? []} />
+          {!readOnly && (actions ?? []).length > 0 && (
+            <Card size="sm" className="border-primary/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ShieldCheck className="size-4 text-primary" aria-hidden />
+                  Proposed actions
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-3">
+                {(actions ?? []).map((a) => (
+                  <ActionCard key={a.id} compact action={toCardData({ ...a, type: a.type as ActionType })} />
+                ))}
+                <p className="text-xs text-muted-foreground">Nothing changes in Shopify until you approve.</p>
+              </CardContent>
+            </Card>
+          )}
+          {!readOnly && <ReplyComposer conversationId={conv.id} quickReplies={quickReplies ?? []} />}
         </div>
 
         <aside className="flex flex-col gap-4">
@@ -187,40 +226,26 @@ export default async function ConversationPage({ params }: PageProps<"/inbox/[id
             </CardContent>
           </Card>
 
-          <Card size="sm">
-            <CardHeader>
-              <CardTitle>Conversation</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3">
-              <p className="text-xs text-muted-foreground">
-                {conv.ai_paused ? `You're handling this. ${agent} won't reply.` : `${agent} drafts replies here.`}
-              </p>
-              <ConversationControls
-                conversationId={conv.id}
-                aiPaused={conv.ai_paused}
-                resolved={status === "resolved"}
-                canAskAi={!!unanswered && !latestDraft}
-                agentName={agent}
-              />
-            </CardContent>
-          </Card>
-
-          {(actions ?? []).length > 0 && (
+          {!readOnly && (
             <Card size="sm">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ShieldCheck className="size-4 text-primary" aria-hidden />
-                  Proposed actions
-                </CardTitle>
+                <CardTitle>Conversation</CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col gap-3">
-                {(actions ?? []).map((a) => (
-                  <ActionCard key={a.id} compact action={toCardData({ ...a, type: a.type as ActionType })} />
-                ))}
-                <p className="text-xs text-muted-foreground">Nothing changes in Shopify until you approve.</p>
+                <p className="text-xs text-muted-foreground">
+                  {conv.ai_paused ? `You're handling this. ${agent} won't reply.` : `${agent} drafts replies here.`}
+                </p>
+                <ConversationControls
+                  conversationId={conv.id}
+                  aiPaused={conv.ai_paused}
+                  resolved={status === "resolved"}
+                  canAskAi={aiAvailable && !!unanswered && !latestDraft}
+                  agentName={agent}
+                />
               </CardContent>
             </Card>
           )}
+
         </aside>
       </div>
     </PageShell>

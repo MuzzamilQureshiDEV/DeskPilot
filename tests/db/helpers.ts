@@ -58,8 +58,19 @@ export async function createTestUser(
   if (error) throw error;
 
   const client = anonClient();
-  const signIn = await client.auth.signInWithPassword({ email, password });
-  if (signIn.error) throw signIn.error;
+  // Supabase limits sign-ins per minute; wait and retry instead of failing (and leaving data behind).
+  for (let attempt = 0; ; attempt++) {
+    const signIn = await client.auth.signInWithPassword({ email, password });
+    if (!signIn.error) break;
+    if (signIn.error.status !== 429 || attempt >= 5) {
+      // Clean up the half-made account (and the shop the signup trigger created).
+      const { data: m } = await admin.from("shop_members").select("shop_id").eq("user_id", data.user.id);
+      if (m?.length) await admin.from("shops").delete().in("id", m.map((x) => x.shop_id));
+      await admin.auth.admin.deleteUser(data.user.id);
+      throw signIn.error;
+    }
+    await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
+  }
 
   return { id: data.user.id, email, client };
 }

@@ -5,7 +5,9 @@ import Link from "next/link";
 import { EmptyState, PageHeader, PageShell } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { PlanLocked } from "@/components/dashboard/plan-locked";
 import { getCurrentShop } from "@/lib/auth/session";
+import { hasPlan } from "@/lib/billing/plans";
 import { asStatus, STATUS_LABEL, timeAgo } from "@/lib/inbox/labels";
 import { createClient } from "@/lib/supabase/server";
 
@@ -23,6 +25,14 @@ const snippet = (text: string, max = 160) => (text.length > max ? `${text.slice(
 export default async function EscalationsPage() {
   const shop = await getCurrentShop();
   const agent = shop?.agentName ?? "Your agent";
+  if (shop && !hasPlan(shop.plan)) {
+    return (
+      <PageShell>
+        <PageHeader title="Escalations" description={`Conversations ${agent} handed to you.`} />
+        <PlanLocked title={`Escalations unlock with a plan`} description={`Once you choose a plan, conversations ${agent} can't answer on her own land here with the reason, and you get an email.`} points={["Questions your policies don't cover","Upset or angry customers","Anything Ava isn't sure about"]} />
+      </PageShell>
+    );
+  }
   const supabase = await createClient();
 
   const [{ data: waiting }, { data: recent }] = shop
