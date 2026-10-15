@@ -89,22 +89,62 @@ export function StoreNameForm({ initial, agentName }: { initial: string; agentNa
   );
 }
 
+const SCOPES = "read_customers,read_fulfillments,read_merchant_managed_fulfillment_orders,read_orders,write_orders,read_products";
+
+function CopyText({ text, label }: { text: string; label: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <span className="mt-1.5 flex flex-wrap items-center gap-2">
+      <code className="break-all">{text}</code>
+      <button
+        type="button"
+        className="rounded-md border bg-background px-2 py-0.5 text-xs font-medium text-foreground hover:bg-muted"
+        onClick={() =>
+          navigator.clipboard.writeText(text).then(
+            () => {
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1500);
+            },
+            () => toast.error("Couldn't copy. Select the text and copy it manually."),
+          )
+        }
+      >
+        {copied ? "Copied" : label}
+      </button>
+    </span>
+  );
+}
+
 const GUIDE = [
   <>
     Open{" "}
     <a href="https://dev.shopify.com" target="_blank" rel="noopener noreferrer">
       dev.shopify.com
     </a>{" "}
-    and log in with the Shopify account that owns your store. Click <b>Create app</b>, choose to start from the Dev Dashboard and name it
-    &ldquo;AstaDesk&rdquo;.
+    and log in with the Shopify account that owns your store. Click <b>Create app</b> and choose <b>Start from Dev Dashboard</b>.
   </>,
   <>
-    Under <b>Versions</b> (Access → Admin API), tick these permissions and click <b>Release</b>:{" "}
-    <code>read_orders, write_orders, read_products, read_customers, read_fulfillments, read_merchant_managed_fulfillment_orders</code>.
+    Fill in the <b>Create an app</b> form:
+    <ul className="mt-1.5 flex list-disc flex-col gap-1 pl-5">
+      <li>
+        <b>App name</b>: AstaDesk. Leave <b>Version name</b> empty.
+      </li>
+      <li>
+        <b>App URL</b>: <CopyText text="https://www.astadesk.com" label="Copy" />
+      </li>
+      <li>
+        <b>Untick &ldquo;Embed app in Shopify admin&rdquo;</b>. Leave <b>Allowed redirection URL(s)</b> empty and{" "}
+        <b>Use legacy install flow</b> unticked.
+      </li>
+      <li>
+        <b>Scopes</b> (under API access): paste <CopyText text={SCOPES} label="Copy scopes" />
+      </li>
+    </ul>
+    Then click <b>Release</b>.
   </>,
   <>
-    Open <b>API access → Protected customer data access</b> and request it with the reason &ldquo;Customer service&rdquo;. Tick Name,
-    Email, Phone and Address too. For your own store this is approved straight away.
+    If Shopify asks about <b>Protected customer data</b>, request it with the reason &ldquo;Customer service&rdquo; and tick Name, Email,
+    Phone and Address. For your own store it&apos;s approved straight away.
   </>,
   <>
     Click <b>Install app</b> and choose your store.
