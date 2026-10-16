@@ -190,7 +190,12 @@ export default async function StorePage({ searchParams }: PageProps<"/store">) {
                 )}
               </div>
             )}
-            {!status.needs_reconnect && <TestConnectionButton />}
+            {!status.needs_reconnect && (
+              <>
+                <TestConnectionButton />
+                <ConnectVideoButton />
+              </>
+            )}
             {status.scopes && (
               <div className="flex flex-col gap-2">
                 <p className="text-sm font-medium">What {agent} can access</p>
