@@ -13,6 +13,7 @@ import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
 import { ConnectForm, DisconnectButton } from "./connect-form";
+import { ConnectVideoButton } from "./connect-video";
 import { OwnAppConnectForm, StoreNameForm, TestConnectionButton } from "./store-widgets";
 
 export const metadata: Metadata = { title: "Store · AstaDesk" };
@@ -180,7 +181,10 @@ export default async function StorePage({ searchParams }: PageProps<"/store">) {
                       : `Shopify access expired. Reconnect so ${agent} can see live orders again.`}
                 </p>
                 {status.auth === "own_app" ? (
-                  <OwnAppConnectForm defaultDomain={status.domain} label="Reconnect" />
+                  <>
+                    <ConnectVideoButton />
+                    <OwnAppConnectForm defaultDomain={status.domain} label="Reconnect" />
+                  </>
                 ) : (
                   configured && <ConnectForm defaultDomain={status.domain} label="Reconnect" />
                 )}
@@ -222,6 +226,7 @@ export default async function StorePage({ searchParams }: PageProps<"/store">) {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-6">
+            <ConnectVideoButton />
             <OwnAppConnectForm />
 
             <details className="rounded-xl border px-4 py-3 text-sm">
