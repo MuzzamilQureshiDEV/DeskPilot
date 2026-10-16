@@ -13,7 +13,7 @@ import { serverEnv } from "@/lib/env";
 const schema = z.object({
   name: z.string().trim().min(1, "Enter your name.").max(80, "Keep your name under 80 characters."),
   email: z.email("Enter a valid email address.").max(200),
-  concern: z.string().trim().min(10, "Tell us a little more (at least 10 characters).").max(4000, "Keep it under 4,000 characters."),
+  concern: z.string().trim().min(2, "Tell us how we can help.").max(4000, "Keep it under 4,000 characters."),
 });
 
 export type SupportResult = { ok: true } | { ok: false; error: string };

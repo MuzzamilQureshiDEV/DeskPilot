@@ -108,7 +108,7 @@ export function SupportButton({ defaultName, defaultEmail }: { defaultName: stri
                   {error}
                 </p>
               )}
-              <Button type="submit" disabled={pending || !name.trim() || !email.trim() || concern.trim().length < 10} className="self-end">
+              <Button type="submit" disabled={pending || !name.trim() || !email.trim() || !concern.trim()} className="self-end">
                 {pending ? <Loader2 className="animate-spin" aria-hidden /> : <Send aria-hidden />}
                 {pending ? "Sending…" : "Send"}
               </Button>
