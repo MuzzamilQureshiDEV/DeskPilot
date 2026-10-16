@@ -9,6 +9,7 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 import { getCurrentShop, requireUser } from "@/lib/auth/session";
 import { CommandPalette } from "@/components/dashboard/command-palette";
 import { LiveRefresh } from "@/components/dashboard/live-refresh";
+import { SupportButton } from "@/components/dashboard/support-button";
 import { loadAiAccess } from "@/lib/billing/usage";
 import { createClient } from "@/lib/supabase/server";
 
@@ -49,11 +50,14 @@ export default async function DashboardLayout({ children }: LayoutProps<"/">) {
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4 data-vertical:self-center" />
           <PageTitle />
-          {shop?.plan === "trial" && (
-            <Link href="/billing" className="ml-auto">
-              <Badge variant="secondary">No plan · Choose a plan</Badge>
-            </Link>
-          )}
+          <div className="ml-auto flex items-center gap-2">
+            {shop?.plan === "trial" && (
+              <Link href="/billing" className="hidden sm:block">
+                <Badge variant="secondary">No plan · Choose a plan</Badge>
+              </Link>
+            )}
+            <SupportButton defaultName="" defaultEmail={user.email} />
+          </div>
         </header>
         {access && !access.allowed && access.reason === "no_plan" && (
           <div role="status" className="flex flex-wrap items-center justify-between gap-2 border-b bg-primary/10 px-4 py-2 text-sm">

@@ -39,6 +39,8 @@ export const serverEnvSchema = publicEnvSchema.extend({
   STRIPE_WEBHOOK_SECRET: z.string().startsWith("whsec_").optional(),
   /** Shown on the Billing page for the custom Scale plan. */
   SALES_EMAIL: z.email().optional(),
+  // Where the dashboard "Contact support" form is delivered.
+  SUPPORT_INBOX_EMAIL: z.email().default("info@websaura.com"),
   /** PayPal subscriptions (billing). All optional: PayPal is hidden until configured. */
   PAYPAL_ENV: z.enum(["sandbox", "live"]).default("sandbox"),
   PAYPAL_CLIENT_ID: z.string().min(10).optional(),
