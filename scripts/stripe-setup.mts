@@ -21,7 +21,7 @@ if (!webhookUrl?.startsWith("https://")) {
 }
 
 const stripe = new Stripe(key);
-const mode = key.startsWith("sk_live_") ? "LIVE" : "TEST";
+const mode = /^(sk|rk)_live_/.test(key) ? "LIVE" : "TEST";
 console.log(`Stripe ${mode} mode`);
 
 // Kept in sync with PRICE_LOOKUP_KEYS in src/lib/billing/plans.ts.
