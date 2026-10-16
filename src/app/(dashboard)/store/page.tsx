@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { PageHeader, PageShell } from "@/components/dashboard/page-header";
+import { VideoButton } from "@/components/dashboard/video-button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
@@ -10,10 +11,10 @@ import { getCurrentShop } from "@/lib/auth/session";
 import { serverEnv } from "@/lib/env";
 import { shopifyAppConfig } from "@/lib/shopify/oauth";
 import { createClient } from "@/lib/supabase/server";
+import { VIDEOS } from "@/lib/videos";
 import { cn } from "@/lib/utils";
 
 import { ConnectForm, DisconnectButton } from "./connect-form";
-import { ConnectVideoButton } from "./connect-video";
 import { OwnAppConnectForm, StoreNameForm, TestConnectionButton } from "./store-widgets";
 
 export const metadata: Metadata = { title: "Store · AstaDesk" };
@@ -182,7 +183,7 @@ export default async function StorePage({ searchParams }: PageProps<"/store">) {
                 </p>
                 {status.auth === "own_app" ? (
                   <>
-                    <ConnectVideoButton />
+                    <VideoButton video={VIDEOS.connectShopify} />
                     <OwnAppConnectForm defaultDomain={status.domain} label="Reconnect" />
                   </>
                 ) : (
@@ -193,7 +194,7 @@ export default async function StorePage({ searchParams }: PageProps<"/store">) {
             {!status.needs_reconnect && (
               <>
                 <TestConnectionButton />
-                <ConnectVideoButton />
+                <VideoButton video={VIDEOS.connectShopify} />
               </>
             )}
             {status.scopes && (
@@ -231,7 +232,7 @@ export default async function StorePage({ searchParams }: PageProps<"/store">) {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-6">
-            <ConnectVideoButton />
+            <VideoButton video={VIDEOS.connectShopify} />
             <OwnAppConnectForm />
 
             <details className="rounded-xl border px-4 py-3 text-sm">

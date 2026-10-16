@@ -19,6 +19,7 @@ import Link from "next/link";
 
 import { PageHeader, PageShell } from "@/components/dashboard/page-header";
 import { PlanLocked } from "@/components/dashboard/plan-locked";
+import { VideoButton } from "@/components/dashboard/video-button";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +33,7 @@ import { presetFor } from "@/lib/settings/agent";
 import { emailFilters } from "@/lib/settings/email-filters";
 import { widgetSettings } from "@/lib/settings/widget";
 import { createClient } from "@/lib/supabase/server";
+import { VIDEOS } from "@/lib/videos";
 import { cn } from "@/lib/utils";
 
 import { AgentForm } from "./agent-form";
@@ -284,6 +286,8 @@ async function EmailTab({ shopId, storeName, agent, row }: { shopId: string; sto
               )}
             </div>
           )}
+
+          <VideoButton video={VIDEOS.forwardGmail} />
 
           <div className="grid gap-4 md:grid-cols-2">
             <details className="rounded-xl border px-4 py-3 text-sm" open={!connected}>
