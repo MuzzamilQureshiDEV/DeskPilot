@@ -390,6 +390,7 @@ async function WidgetTab({ shopId, storeName, widget, widgetKey }: { shopId: str
       ) : (
         <Section icon={ExternalLink} title="Add the chat to your store" description="Paste this one line into your theme once. Changes you make on this page then appear on your store automatically.">
           <div className="flex flex-col gap-4 text-sm">
+            <VideoButton video={VIDEOS.addChatWidget} />
             {embed && <EmbedCode code={embed} />}
             <ol className="flex list-decimal flex-col gap-1 pl-5 text-muted-foreground">
               <li>In Shopify admin, open Online Store → Themes.</li>

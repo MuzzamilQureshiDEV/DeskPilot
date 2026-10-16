@@ -18,4 +18,12 @@ export const VIDEOS = {
     description:
       "A one-minute walkthrough: copy your AstaDesk address, add it as a forwarding address in Gmail, confirm with the code shown in AstaDesk, then turn forwarding on.",
   },
+  addChatWidget: {
+    src: "/videos/add-chat-widget.mp4",
+    poster: "/videos/add-chat-widget.jpg",
+    title: "How to add the chat to your store",
+    label: "Watch how to add the chat (1 min)",
+    description:
+      "A one-minute walkthrough: copy your chat code, open Edit code on your Shopify theme, paste it just before </body> in theme.liquid and save.",
+  },
 } satisfies Record<string, HowToVideo>;
