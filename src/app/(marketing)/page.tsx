@@ -164,6 +164,17 @@ export default async function LandingPage() {
               </li>
             ))}
           </ul>
+          <figure className="mt-6 w-full max-w-4xl">
+            <video
+              className="aspect-video w-full rounded-2xl border bg-card shadow-lift"
+              src="/videos/astadesk-intro.mp4"
+              poster="/videos/astadesk-intro.jpg"
+              controls
+              playsInline
+              preload="metadata"
+              aria-label="Meet Ava: a 20-second introduction to AstaDesk"
+            />
+          </figure>
         </div>
       </section>
 
