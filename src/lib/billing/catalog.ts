@@ -71,3 +71,27 @@ export const PLAN_COPY: Record<SelfServePlan, PlanCopy> = {
 };
 
 export const FOUNDING_BADGE = "Founding price — limited founding spots";
+
+/**
+ * The "Customize" card: a monthly fee plus a price per AI reply. Not in
+ * PayPal / Stripe; our team sets it up by hand, so the prices live here (USD cents).
+ */
+export const CUSTOM_PLAN = {
+  monthlyAmount: 4000,
+  perReplyAmount: 3,
+  currency: "USD",
+  badge: "Pay per reply",
+  copy: {
+    kicker: "Customize",
+    tagline: "Pay for what you use",
+    name: "The Flexible Plan",
+    description: "For stores whose support volume changes month to month.",
+    includes: "Everything in Growth, plus:",
+    features: [
+      "$0.03 per AI reply on top of the monthly fee",
+      "Pay only for the replies Ava sends",
+      "Set up with our team",
+    ],
+    quote: "Pay for the replies you need, nothing more.",
+  } satisfies PlanCopy,
+};

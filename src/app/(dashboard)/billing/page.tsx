@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 
 import { EmptyState, PageHeader, PageShell } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCurrentShop } from "@/lib/auth/session";
 import { plansLocked } from "@/lib/billing/launch-lock";
@@ -156,6 +157,17 @@ export default async function BillingPage({ searchParams }: PageProps<"/billing"
                 </div>
               );
             }}
+            customCta={
+              isOwner &&
+              salesEmail && (
+                <a
+                  href={`mailto:${salesEmail}?subject=AstaDesk%20Customize%20plan`}
+                  className={buttonVariants({ variant: "outline", className: "w-full" })}
+                >
+                  Talk to us
+                </a>
+              )
+            }
           />
         </LaunchGate>
       )}

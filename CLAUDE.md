@@ -424,6 +424,8 @@ Test page: preset scenario buttons (cancel order, refund request, return questio
 
 There is **no free trial**: new accounts explore free (dashboard, store connect, policies, Test page), but Ava answers real customers only on a paid plan (`aiAccess` → `no_plan`). All three plans are self-serve "founding prices". Prices live in PayPal plans (`PAYPAL_PLAN_STARTER/GROWTH/SCALE`) or Stripe prices (lookup keys `deskpilot_{starter,growth,scale}_monthly`), never hardcoded; `npm run paypal:setup` / `stripe:setup` set them. Card copy lives in `src/lib/billing/catalog.ts` (real features only).
 
+A 4th **Customize** card ($40/month + $0.03 per AI reply, Growth features) is display-only: `CUSTOM_PLAN` in `catalog.ts` holds its prices, and its button emails `SALES_EMAIL`. It has no plan tier, PayPal/Stripe plan or metered billing; the owner sets these stores up by hand.
+
 ---
 
 ## 12. Dashboard pages (MVP set)

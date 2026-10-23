@@ -19,6 +19,7 @@ import Link from "next/link";
 import { PricingCards } from "@/components/billing/pricing-cards";
 import { AvaDemo } from "@/components/marketing/ava-demo";
 import { buttonVariants } from "@/components/ui/button";
+import { serverEnv } from "@/lib/env";
 import { paypalConfig } from "@/lib/paypal/client";
 import { loadPayPalPrices } from "@/lib/paypal/checkout";
 import { loadPrices } from "@/lib/stripe/checkout";
@@ -117,6 +118,7 @@ const FAQ = [
 
 export default async function LandingPage() {
   const prices = paypalConfig() ? await loadPayPalPrices() : await loadPrices();
+  const salesEmail = serverEnv().SALES_EMAIL;
   return (
     <>
       {/* Hero */}
@@ -338,6 +340,15 @@ export default async function LandingPage() {
                   <ArrowRight aria-hidden />
                 </Link>
               )}
+              customCta={
+                <a
+                  href={salesEmail ? `mailto:${salesEmail}?subject=AstaDesk%20Customize%20plan` : "/signup"}
+                  className={buttonVariants({ size: "lg", variant: "outline", className: "w-full" })}
+                >
+                  Talk to us
+                  <ArrowRight aria-hidden />
+                </a>
+              }
             />
           </div>
         </div>
