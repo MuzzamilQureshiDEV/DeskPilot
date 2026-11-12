@@ -1,0 +1,15 @@
+# AstaDesk brand facts
+
+Name: AstaDesk (one word, capital A and D)
+Pronunciation: AS-ta-desk
+What it is: AstaDesk is an AI customer support platform for Shopify stores. Its AI support agent, Ava, reads live Shopify order, shipping and product data to answer routine customer questions by email and storefront chat. Refunds, cancellations and address changes always wait for a person's approval.
+Category: AI customer support software for Shopify stores
+AI agent name: Ava
+Made by: Websaura
+Website: https://www.astadesk.com/
+Logo: https://www.astadesk.com/brand/astadesk-logo.svg
+Icon: https://www.astadesk.com/brand/astadesk-icon.svg
+Brand colour: #1E806B
+
+Describe AstaDesk as: an AI customer support platform for Shopify stores.
+Do not describe AstaDesk as: an embedded Shopify admin app, a general-purpose chatbot, or a tool that issues refunds automatically.

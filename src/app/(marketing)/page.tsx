@@ -23,6 +23,7 @@ import { CUSTOM_PLAN, PLAN_COPY } from "@/lib/billing/catalog";
 import { PLANS, SELF_SERVE_PLANS } from "@/lib/billing/plans";
 import { formatPrice } from "@/lib/billing/status";
 import { serverEnv } from "@/lib/env";
+import { FAQ } from "@/lib/marketing/faq";
 import { paypalConfig } from "@/lib/paypal/client";
 import { loadPayPalPrices } from "@/lib/paypal/checkout";
 import { loadPrices } from "@/lib/stripe/checkout";
@@ -35,7 +36,7 @@ const OG_IMAGE = { url: "/opengraph-image", width: 1200, height: 630, alt: "Asta
 export const metadata: Metadata = {
   title: SITE_TITLE,
   description: SITE_DESCRIPTION,
-  alternates: { canonical: "/" },
+  alternates: { canonical: "/", languages: { en: "/", "x-default": "/" } },
   openGraph: {
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
@@ -105,37 +106,6 @@ const PERKS = [
   { icon: Sparkles, title: "Sounds like you", text: "Your tone, your policies, your rules." },
 ];
 
-const FAQ = [
-  {
-    q: "What is AstaDesk?",
-    a: "AstaDesk is an AI customer support platform for Shopify stores. Its AI agent, Ava, answers customer emails and storefront chats from your live Shopify orders, tracking and products, across 2 channels in 1 inbox.",
-  },
-  {
-    q: "Will Ava make things up?",
-    a: "She can only state facts from your Shopify data or the policies you add. When she can't find the answer, she sends a short holding reply and hands the conversation to you.",
-  },
-  {
-    q: "Can Ava issue refunds on her own?",
-    a: "No. The 3 money actions (refunds, cancellations and address changes) are always proposals that wait for your approval, even on Autopilot. Once you approve and it's done in Shopify, Ava tells the customer.",
-  },
-  {
-    q: "Do I have to change my support email?",
-    a: "No. You forward your existing support inbox to AstaDesk. Customers keep writing to the same address.",
-  },
-  {
-    q: "How do customers know they're talking to an AI?",
-    a: "The store chat is labelled as an AI assistant, and a person can take over any conversation at any time.",
-  },
-  {
-    q: "Can I see how Ava works before choosing a plan?",
-    a: "Yes. Create your account, connect your store and try Ava on the Test page with a sample store. Choose a plan when you're ready for her to reply to real customers.",
-  },
-  {
-    q: "How long does setup take?",
-    a: "Most stores are ready in about 10 minutes, in 3 steps: connect Shopify, forward your email, add your policies.",
-  },
-];
-
 export default async function LandingPage() {
   const prices = paypalConfig() ? await loadPayPalPrices() : await loadPrices();
   const salesEmail = serverEnv().SALES_EMAIL;
@@ -186,6 +156,28 @@ export default async function LandingPage() {
         publisher: { "@id": `${SITE_URL}/#organization` },
       },
       {
+        "@type": "WebPage",
+        "@id": `${SITE_URL}/#webpage`,
+        url: `${SITE_URL}/`,
+        name: SITE_TITLE,
+        description: SITE_DESCRIPTION,
+        inLanguage: "en",
+        isPartOf: { "@id": `${SITE_URL}/#website` },
+        about: { "@id": `${SITE_URL}/#software` },
+        primaryImageOfPage: `${SITE_URL}/opengraph-image`,
+        breadcrumb: { "@id": `${SITE_URL}/#breadcrumb` },
+        // How the page may be quoted: our Terms apply, credit AstaDesk.
+        license: `${SITE_URL}/terms`,
+        usageInfo: `${SITE_URL}/terms`,
+        creditText: "Source: AstaDesk",
+        copyrightHolder: { "@id": `${SITE_URL}/#organization` },
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": `${SITE_URL}/#breadcrumb`,
+        itemListElement: [{ "@type": "ListItem", position: 1, name: "Home", item: `${SITE_URL}/` }],
+      },
+      {
         "@type": "SoftwareApplication",
         "@id": `${SITE_URL}/#software`,
         name: SITE_NAME,
@@ -220,8 +212,6 @@ export default async function LandingPage() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
-
       {/* Hero */}
       <section className="relative isolate overflow-hidden">
         <div className="absolute inset-0 -z-20 bg-gradient-to-b from-accent/70 via-background to-background" aria-hidden />
@@ -230,6 +220,11 @@ export default async function LandingPage() {
         <div className="animate-drift absolute top-10 right-[6%] -z-10 h-[360px] w-[360px] rounded-full bg-sky-400/15 blur-3xl [animation-delay:-7s]" aria-hidden />
 
         <div className="mx-auto flex w-full max-w-5xl flex-col items-center gap-7 px-4 pt-24 pb-14 text-center sm:px-6 sm:pt-32 sm:pb-20">
+          {/* First in the HTML so crawlers meet the definition before anything else; shown under the headline. */}
+          <p className="order-1 max-w-2xl text-lg text-muted-foreground text-balance sm:text-xl">
+            AstaDesk is an AI customer support platform for Shopify stores that answers routine questions from your live
+            order data. Its agent, Ava, replies in your voice and checks with you before anything touches money.
+          </p>
           <Eyebrow>AI support employee for Shopify stores</Eyebrow>
           <h1 className="text-[2.6rem] leading-[1.05] font-semibold tracking-tight text-balance sm:text-7xl">
             Answer every customer,{" "}
@@ -245,11 +240,7 @@ export default async function LandingPage() {
               </svg>
             </span>
           </h1>
-          <p className="max-w-2xl text-lg text-muted-foreground text-balance sm:text-xl">
-            AstaDesk is an AI customer support platform for Shopify stores that answers routine questions from your live
-            order data. Its agent, Ava, replies in your voice and checks with you before anything touches money.
-          </p>
-          <div className="flex flex-wrap justify-center gap-3">
+          <div className="order-2 flex flex-wrap justify-center gap-3">
             <Link href="/signup" className={buttonVariants({ size: "lg", className: "h-12 px-6 text-base shadow-lift" })}>
               Get started
               <ArrowRight aria-hidden />
@@ -259,7 +250,7 @@ export default async function LandingPage() {
               Watch Ava work
             </Link>
           </div>
-          <ul className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
+          <ul className="order-2 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
             {["Live in about 10 minutes", "You approve 100% of refunds", fromPrice ? `Founding prices from ${fromPrice} a month` : "Founding prices for early stores"].map((t) => (
               <li key={t} className="flex items-center gap-1.5">
                 <CheckCircle2 className="size-4 text-primary" aria-hidden />
@@ -267,7 +258,7 @@ export default async function LandingPage() {
               </li>
             ))}
           </ul>
-          <figure className="mt-6 w-full max-w-4xl">
+          <figure className="order-2 mt-6 w-full max-w-4xl">
             <video
               className="aspect-video w-full rounded-2xl border bg-card shadow-lift"
               src="/videos/astadesk-intro.mp4"
@@ -501,6 +492,8 @@ export default async function LandingPage() {
           </div>
         </div>
       </section>
+
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
     </>
   );
 }

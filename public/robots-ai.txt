@@ -1,0 +1,10 @@
+# robots-ai.txt for https://www.astadesk.com
+# The binding rules are in /robots.txt. This file repeats the policy for AI crawlers.
+
+User-Agent: *
+Content-Signal: search=yes, ai-input=yes, ai-train=yes
+Allow: /
+Disallow: /api/
+Disallow: /auth/
+
+Sitemap: https://www.astadesk.com/sitemap.xml

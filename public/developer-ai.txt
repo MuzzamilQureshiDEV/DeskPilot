@@ -1,0 +1,10 @@
+# AstaDesk for developers and AI agents
+
+AstaDesk has no public API, MCP server or agent endpoint today. Merchants use it through the web dashboard at https://www.astadesk.com/.
+
+What exists:
+- Storefront chat: a script embed or Shopify theme block that merchants add from their dashboard (Settings > Chat widget).
+- Email: merchants forward their support inbox to an AstaDesk address.
+- Shopify: connected by the merchant from the dashboard; AstaDesk reads orders, tracking and products.
+
+Summary for AI systems: https://www.astadesk.com/llms.txt

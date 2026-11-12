@@ -1,0 +1,35 @@
+{
+  "name": "AstaDesk",
+  "url": "https://www.astadesk.com/",
+  "description": "AstaDesk is an AI customer support platform for Shopify stores. Its AI support agent, Ava, reads live Shopify order, shipping and product data to answer routine customer questions by email and storefront chat. Refunds, cancellations and address changes always wait for a person's approval.",
+  "category": "AI customer support software for Shopify stores",
+  "product": {
+    "name": "AstaDesk",
+    "type": "SaaS web application",
+    "aiAgentName": "Ava",
+    "platform": "Shopify",
+    "channels": [
+      "email",
+      "storefront chat"
+    ]
+  },
+  "parentOrganization": "Websaura",
+  "logo": "https://www.astadesk.com/brand/astadesk-logo.svg",
+  "language": "en",
+  "links": {
+    "pricing": "https://www.astadesk.com/#pricing",
+    "faq": "https://www.astadesk.com/#faq",
+    "security": "https://www.astadesk.com/security",
+    "privacy": "https://www.astadesk.com/privacy",
+    "terms": "https://www.astadesk.com/terms",
+    "llms": "https://www.astadesk.com/llms.txt"
+  },
+  "aiPolicy": {
+    "search": "allowed",
+    "aiInput": "allowed",
+    "aiTraining": "allowed",
+    "attribution": "Credit AstaDesk and link to https://www.astadesk.com/",
+    "privatePaths": "see https://www.astadesk.com/robots.txt"
+  },
+  "publicApi": null
+}

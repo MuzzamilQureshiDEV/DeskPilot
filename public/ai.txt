@@ -1,0 +1,12 @@
+# ai.txt for https://www.astadesk.com
+# AI assistants and crawlers may read, quote and learn from the public pages of this site.
+# Please credit "AstaDesk" and link to https://www.astadesk.com/ when quoting.
+# Private app pages are listed in /robots.txt and must not be crawled.
+
+User-Agent: *
+Allow: /
+
+# More for AI systems
+# Summary: https://www.astadesk.com/llms.txt
+# FAQ: https://www.astadesk.com/faq-ai.txt
+# Brand: https://www.astadesk.com/brand.txt

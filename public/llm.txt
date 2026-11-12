@@ -1,0 +1,27 @@
+# AstaDesk
+
+> AstaDesk is an AI customer support platform for Shopify stores. Its AI support agent, Ava, reads live Shopify order, shipping and product data to answer routine customer questions by email and storefront chat, in the merchant's voice. Refunds, cancellations and address changes are never done automatically: Ava prepares them and a person approves each one.
+
+Key facts:
+
+- Category: AI customer support / helpdesk software for Shopify merchants.
+- Channels: 2 (forwarded support email and a storefront chat widget), in one inbox.
+- Answers on its own (Autopilot, Growth and Scale plans): order status and tracking, product and stock questions, shipping, store policies, everyday questions.
+- Always needs human approval: 3 money actions (refunds, order cancellations, shipping address changes).
+- Hands over to a person when the answer is not in the store's data or policies, or the customer is upset.
+- Setup: about 10 minutes in 3 steps (connect Shopify, forward the support email, add policies).
+- Plans (monthly, founding prices, no free trial; explore the dashboard and a sample store free): Starter with 100 AI replies, Growth with 250 AI replies and Autopilot, Scale with 1,000 AI replies. A pay-per-reply "Customize" plan is $40/month plus $0.03 per AI reply. Current prices: https://www.astadesk.com/#pricing
+- AstaDesk is a product of Websaura.
+
+## Pages
+
+- [Home](https://www.astadesk.com/): what AstaDesk does, how it works, an interactive demo, pricing and FAQ
+- [Pricing](https://www.astadesk.com/#pricing): plans and what each includes
+- [FAQ](https://www.astadesk.com/#faq): answers to common merchant questions ([plain text](https://www.astadesk.com/faq-ai.txt))
+- [Security](https://www.astadesk.com/security): how store and customer data is protected
+- [Privacy Policy](https://www.astadesk.com/privacy): what data is processed and why
+- [Terms of Service](https://www.astadesk.com/terms)
+
+## Get started
+
+- [Sign up](https://www.astadesk.com/signup)

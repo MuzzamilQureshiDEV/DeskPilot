@@ -17,7 +17,7 @@ Key facts:
 
 - [Home](https://www.astadesk.com/): what AstaDesk does, how it works, an interactive demo, pricing and FAQ
 - [Pricing](https://www.astadesk.com/#pricing): plans and what each includes
-- [FAQ](https://www.astadesk.com/#faq): answers to common merchant questions
+- [FAQ](https://www.astadesk.com/#faq): answers to common merchant questions ([plain text](https://www.astadesk.com/faq-ai.txt))
 - [Security](https://www.astadesk.com/security): how store and customer data is protected
 - [Privacy Policy](https://www.astadesk.com/privacy): what data is processed and why
 - [Terms of Service](https://www.astadesk.com/terms)

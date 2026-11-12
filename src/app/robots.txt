@@ -1,0 +1,19 @@
+# AstaDesk: https://www.astadesk.com
+# Content-Signal (contentsignals.org): how this site's content may be used.
+User-Agent: *
+Content-Signal: search=yes, ai-input=yes, ai-train=yes
+Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /home
+Disallow: /inbox
+Disallow: /approvals
+Disallow: /escalations
+Disallow: /train
+Disallow: /test
+Disallow: /automation
+Disallow: /store
+Disallow: /settings
+Disallow: /billing
+
+Sitemap: https://www.astadesk.com/sitemap.xml
