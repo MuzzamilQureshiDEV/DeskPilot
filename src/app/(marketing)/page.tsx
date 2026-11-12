@@ -19,16 +19,32 @@ import Link from "next/link";
 import { PricingCards } from "@/components/billing/pricing-cards";
 import { AvaDemo } from "@/components/marketing/ava-demo";
 import { buttonVariants } from "@/components/ui/button";
+import { CUSTOM_PLAN, PLAN_COPY } from "@/lib/billing/catalog";
+import { PLANS, SELF_SERVE_PLANS } from "@/lib/billing/plans";
+import { formatPrice } from "@/lib/billing/status";
 import { serverEnv } from "@/lib/env";
 import { paypalConfig } from "@/lib/paypal/client";
 import { loadPayPalPrices } from "@/lib/paypal/checkout";
 import { loadPrices } from "@/lib/stripe/checkout";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
+// A page-level openGraph replaces the inherited one, so the share image (src/app/opengraph-image.tsx) is named again.
+const OG_IMAGE = { url: "/opengraph-image", width: 1200, height: 630, alt: "AstaDesk: AI customer support for Shopify stores" };
+
 export const metadata: Metadata = {
-  title: "AstaDesk · AI customer support for Shopify stores",
-  description:
-    "An AI support agent that answers order, shipping and product questions from your real Shopify data, and never moves money without your approval.",
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    url: "/",
+    type: "website",
+    siteName: SITE_NAME,
+    images: [OG_IMAGE],
+  },
+  twitter: { card: "summary_large_image", title: SITE_TITLE, description: SITE_DESCRIPTION, images: [OG_IMAGE] },
 };
 
 // Prices come from PayPal / Stripe; refresh the page at most hourly.
@@ -91,12 +107,16 @@ const PERKS = [
 
 const FAQ = [
   {
+    q: "What is AstaDesk?",
+    a: "AstaDesk is an AI customer support platform for Shopify stores. Its AI agent, Ava, answers customer emails and storefront chats from your live Shopify orders, tracking and products, across 2 channels in 1 inbox.",
+  },
+  {
     q: "Will Ava make things up?",
     a: "She can only state facts from your Shopify data or the policies you add. When she can't find the answer, she sends a short holding reply and hands the conversation to you.",
   },
   {
     q: "Can Ava issue refunds on her own?",
-    a: "No. Refunds, cancellations and address changes are always proposals that wait for your approval, even on Autopilot. Once you approve and it's done in Shopify, Ava tells the customer.",
+    a: "No. The 3 money actions (refunds, cancellations and address changes) are always proposals that wait for your approval, even on Autopilot. Once you approve and it's done in Shopify, Ava tells the customer.",
   },
   {
     q: "Do I have to change my support email?",
@@ -112,15 +132,96 @@ const FAQ = [
   },
   {
     q: "How long does setup take?",
-    a: "Most stores are ready in about ten minutes: connect Shopify, forward your email, add your policies.",
+    a: "Most stores are ready in about 10 minutes, in 3 steps: connect Shopify, forward your email, add your policies.",
   },
 ];
 
 export default async function LandingPage() {
   const prices = paypalConfig() ? await loadPayPalPrices() : await loadPrices();
   const salesEmail = serverEnv().SALES_EMAIL;
+
+  const planPrices = SELF_SERVE_PLANS.flatMap((plan) => {
+    const price = prices.find((p) => p.plan === plan);
+    return price ? [{ ...price, label: formatPrice(price.amount, price.currency) }] : [];
+  });
+  const customMonthly = formatPrice(CUSTOM_PLAN.monthlyAmount, CUSTOM_PLAN.currency);
+  const customPerReply = formatPrice(CUSTOM_PLAN.perReplyAmount, CUSTOM_PLAN.currency);
+  const replies = (plan: (typeof SELF_SERVE_PLANS)[number]) => (PLANS[plan].aiRepliesPerMonth ?? 0).toLocaleString("en-US");
+  const fromPrice = planPrices[0]?.label;
+
+  // The pricing answer uses the live prices, so it can never drift from the cards.
+  const faq = [
+    ...FAQ,
+    ...(planPrices.length === SELF_SERVE_PLANS.length
+      ? [
+          {
+            q: "How much does AstaDesk cost?",
+            a: `${planPrices
+              .map((p) => `${PLAN_COPY[p.plan].kicker} is ${p.label} a month with ${replies(p.plan)} AI replies`)
+              .join(", ")}. A pay-per-reply plan is ${customMonthly} a month plus ${customPerReply} per AI reply. There is no free trial, but you can explore the dashboard and test Ava on a sample store before paying.`,
+          },
+        ]
+      : []),
+  ];
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": `${SITE_URL}/#organization`,
+        name: SITE_NAME,
+        url: `${SITE_URL}/`,
+        logo: `${SITE_URL}/brand/astadesk-logo-email.png`,
+        description: SITE_DESCRIPTION,
+        parentOrganization: { "@type": "Organization", name: "Websaura" },
+      },
+      {
+        "@type": "WebSite",
+        "@id": `${SITE_URL}/#website`,
+        name: SITE_NAME,
+        url: `${SITE_URL}/`,
+        description: SITE_DESCRIPTION,
+        inLanguage: "en",
+        publisher: { "@id": `${SITE_URL}/#organization` },
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": `${SITE_URL}/#software`,
+        name: SITE_NAME,
+        url: `${SITE_URL}/`,
+        description: SITE_DESCRIPTION,
+        applicationCategory: "BusinessApplication",
+        applicationSubCategory: "AI customer support for Shopify stores",
+        operatingSystem: "Web",
+        publisher: { "@id": `${SITE_URL}/#organization` },
+        ...(planPrices.length > 0 && {
+          offers: planPrices.map((p) => ({
+            "@type": "Offer",
+            name: PLAN_COPY[p.plan].kicker,
+            description: `${replies(p.plan)} AI replies per month`,
+            price: (p.amount / 100).toFixed(2),
+            priceCurrency: p.currency.toUpperCase(),
+            url: `${SITE_URL}/#pricing`,
+          })),
+        }),
+      },
+      {
+        "@type": "FAQPage",
+        "@id": `${SITE_URL}/#faq`,
+        mainEntity: faq.map(({ q, a }) => ({
+          "@type": "Question",
+          name: q,
+          acceptedAnswer: { "@type": "Answer", text: a },
+        })),
+      },
+    ],
+  };
+
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
+
       {/* Hero */}
       <section className="relative isolate overflow-hidden">
         <div className="absolute inset-0 -z-20 bg-gradient-to-b from-accent/70 via-background to-background" aria-hidden />
@@ -145,8 +246,8 @@ export default async function LandingPage() {
             </span>
           </h1>
           <p className="max-w-2xl text-lg text-muted-foreground text-balance sm:text-xl">
-            Ava reads your live Shopify orders, answers routine questions in your voice, and checks with you before anything
-            touches money. You step in only when it matters.
+            AstaDesk is an AI customer support platform for Shopify stores that answers routine questions from your live
+            order data. Its agent, Ava, replies in your voice and checks with you before anything touches money.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Link href="/signup" className={buttonVariants({ size: "lg", className: "h-12 px-6 text-base shadow-lift" })}>
@@ -159,7 +260,7 @@ export default async function LandingPage() {
             </Link>
           </div>
           <ul className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
-            {["Live Shopify data", "You approve every refund", "Founding prices for early stores"].map((t) => (
+            {["Live in about 10 minutes", "You approve 100% of refunds", fromPrice ? `Founding prices from ${fromPrice} a month` : "Founding prices for early stores"].map((t) => (
               <li key={t} className="flex items-center gap-1.5">
                 <CheckCircle2 className="size-4 text-primary" aria-hidden />
                 {t}
@@ -239,7 +340,7 @@ export default async function LandingPage() {
         <div className="mx-auto w-full max-w-6xl px-4 py-20 sm:px-6 lg:py-24">
           <div className="reveal flex flex-col items-center gap-4 text-center">
             <Eyebrow>How it works</Eyebrow>
-            <h2 className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">Live in about ten minutes</h2>
+            <h2 className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">Live in about 10 minutes, in 3 steps</h2>
           </div>
           <ol className="mt-12 grid gap-5 md:grid-cols-3">
             {STEPS.map(({ icon: Icon, title, text }, i) => (
@@ -322,7 +423,10 @@ export default async function LandingPage() {
           <div className="reveal flex flex-col items-center gap-4 text-center">
             <Eyebrow>Founding launch pricing</Eyebrow>
             <h2 className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">Founding prices for early customers</h2>
-            <p className="text-lg text-muted-foreground">Lock in these prices while founding spots last. Cancel anytime.</p>
+            <p className="text-lg text-muted-foreground">{planPrices.length > 0
+                ? `${planPrices.length} plans from ${fromPrice} a month, with ${replies("starter")} to ${replies("scale")} AI replies. Lock in these prices while founding spots last. Cancel anytime.`
+                : "Lock in these prices while founding spots last. Cancel anytime."}
+            </p>
           </div>
           <div className="mt-12">
             <PricingCards
@@ -363,7 +467,7 @@ export default async function LandingPage() {
             <p className="text-lg text-muted-foreground">What merchants ask before they let Ava talk to their customers.</p>
           </div>
           <div className="mt-10 flex flex-col gap-3">
-            {FAQ.map(({ q, a }) => (
+            {faq.map(({ q, a }) => (
               <details key={q} className="group reveal rounded-2xl border bg-card px-6 shadow-soft transition-colors open:border-primary/30">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-5 font-medium marker:hidden [&::-webkit-details-marker]:hidden">
                   {q}
@@ -384,7 +488,7 @@ export default async function LandingPage() {
             Let Ava take the repeat questions. <span className="font-display font-normal text-primary italic">You take the weekend.</span>
           </h2>
           <p className="max-w-xl text-lg text-muted-foreground">
-            Connect your store, try Ava on a sample store, and go live when you&apos;re happy with her answers.
+            Connect your store in about 10 minutes, try Ava on a sample store, and go live when you&apos;re happy with her answers.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Link href="/signup" className={buttonVariants({ size: "lg", className: "h-12 px-6 text-base shadow-lift" })}>

@@ -7,6 +7,7 @@ import { legalConfig } from "@/lib/legal/config";
 export const metadata: Metadata = {
   title: "Security · AstaDesk",
   description: "How AstaDesk protects your store, your inbox and your customers' data.",
+  alternates: { canonical: "/security" },
 };
 
 const SERVICES = [

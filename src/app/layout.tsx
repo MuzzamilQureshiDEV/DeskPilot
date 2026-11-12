@@ -4,6 +4,7 @@ import "./globals.css";
 
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { SITE_NAME, SITE_URL } from "@/lib/site";
 
 const geistSans = Geist({
   variable: "--font-sans",
@@ -23,14 +24,17 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AstaDesk",
+  metadataBase: new URL(SITE_URL),
+  title: SITE_NAME,
   description: "AI customer support for Shopify stores: answers from real store data, money actions only with your approval.",
-  applicationName: "AstaDesk",
+  applicationName: SITE_NAME,
   openGraph: {
     title: "AstaDesk · AI customer support for Shopify stores",
     description: "Answers order, shipping and product questions from your real Shopify data, and never moves money without your approval.",
     type: "website",
+    siteName: SITE_NAME,
   },
+  twitter: { card: "summary_large_image" },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

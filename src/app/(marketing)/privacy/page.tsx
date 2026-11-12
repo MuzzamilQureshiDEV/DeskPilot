@@ -7,6 +7,7 @@ import { LEGAL_EFFECTIVE_DATE, legalConfig } from "@/lib/legal/config";
 export const metadata: Metadata = {
   title: "Privacy Policy · AstaDesk",
   description: "How AstaDesk collects, uses and protects merchant and customer data.",
+  alternates: { canonical: "/privacy" },
 };
 
 const PROVIDERS = [

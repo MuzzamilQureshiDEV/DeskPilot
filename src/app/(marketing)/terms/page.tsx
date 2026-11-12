@@ -7,6 +7,7 @@ import { LEGAL_EFFECTIVE_DATE, legalConfig } from "@/lib/legal/config";
 export const metadata: Metadata = {
   title: "Terms of Service · AstaDesk",
   description: "The terms that apply to using AstaDesk.",
+  alternates: { canonical: "/terms" },
 };
 
 export default function TermsPage() {
