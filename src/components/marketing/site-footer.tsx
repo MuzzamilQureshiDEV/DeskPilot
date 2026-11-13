@@ -13,6 +13,14 @@ const COLUMNS = [
     ],
   },
   {
+    title: "Compare",
+    links: [
+      ["/compare/gorgias", "AstaDesk vs Gorgias"],
+      ["/compare/zendesk", "AstaDesk vs Zendesk"],
+      ["/compare/tidio", "AstaDesk vs Tidio"],
+    ],
+  },
+  {
     title: "Account",
     links: [
       ["/signup", "Get started"],
@@ -42,7 +50,7 @@ export function SiteFooter({ entity }: { entity: string }) {
             The AI support employee for Shopify stores. Ava answers your customers so you can focus on the business.
           </p>
         </div>
-        <nav aria-label="Footer" className="grid grid-cols-2 gap-8 text-sm sm:grid-cols-3">
+        <nav aria-label="Footer" className="grid grid-cols-2 gap-8 text-sm sm:grid-cols-4">
           {COLUMNS.map((col) => (
             <div key={col.title} className="flex flex-col gap-3">
               <p className="text-xs font-semibold tracking-wider text-white/45 uppercase">{col.title}</p>

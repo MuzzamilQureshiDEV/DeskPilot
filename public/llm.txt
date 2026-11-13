@@ -18,6 +18,9 @@ Key facts:
 - [Home](https://www.astadesk.com/): what AstaDesk does, how it works, an interactive demo, pricing and FAQ
 - [Pricing](https://www.astadesk.com/#pricing): plans and what each includes
 - [FAQ](https://www.astadesk.com/#faq): answers to common merchant questions ([plain text](https://www.astadesk.com/faq-ai.txt))
+- [AstaDesk vs Gorgias](https://www.astadesk.com/compare/gorgias): differences, and when each is the better choice
+- [AstaDesk vs Zendesk](https://www.astadesk.com/compare/zendesk): differences, and when each is the better choice
+- [AstaDesk vs Tidio](https://www.astadesk.com/compare/tidio): differences, and when each is the better choice
 - [Security](https://www.astadesk.com/security): how store and customer data is protected
 - [Privacy Policy](https://www.astadesk.com/privacy): what data is processed and why
 - [Terms of Service](https://www.astadesk.com/terms)
