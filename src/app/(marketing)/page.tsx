@@ -46,6 +46,8 @@ export const metadata: Metadata = {
     images: [OG_IMAGE],
   },
   twitter: { card: "summary_large_image", title: SITE_TITLE, description: SITE_DESCRIPTION, images: [OG_IMAGE] },
+  // Site-ownership proof for the inite.ai audit tool (public value, not a secret).
+  other: { "inite-atlas-verify": "9a27b5742f3e7e651d0e930b" },
 };
 
 // Prices come from PayPal / Stripe; refresh the page at most hourly.
